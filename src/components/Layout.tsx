@@ -119,29 +119,25 @@ export default function Layout({ children }: LayoutProps) {
             <ul className="space-y-3 text-sm">
               <li>management@ndangira.rw</li>
               <li>+250 792 612 139</li>
-              <li>Kigali, Rwanda</li>
+              <li>Gisenyi, Rubavu, Rwanda</li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-white font-semibold mb-6">Newsletter</h4>
-            <div className="flex bg-stone-800 rounded-lg p-1.5 focus-within:ring-2 ring-emerald-500 transition-all">
-              <input 
-                type="email" 
-                placeholder="Your email" 
-                className="bg-transparent border-none focus:ring-0 text-sm flex-grow px-3"
-              />
-              <button className="bg-emerald-600 text-white text-xs px-4 py-2 rounded-md font-bold uppercase tracking-wider">Join</button>
-            </div>
+            <h4 className="text-white font-semibold mb-6">Policies</h4>
+            <ul className="space-y-3 text-sm">
+              <li><Link to="/privacy" className="hover:text-emerald-500">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-emerald-500">Terms of Service</Link></li>
+            </ul>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-stone-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium">
           <p>&copy; {new Date().getFullYear()} Ndangira. All rights reserved.</p>
           <div className="flex flex-col items-center md:items-end">
-            <p className="font-black uppercase tracking-[0.2em] text-stone-500">
-              Created by <span className="text-emerald-500">Te Palace, Inc.</span>
+            <p className="font-black uppercase tracking-[0.2em] text-stone-500 text-center md:text-right">
+              Created by <span className="text-emerald-500">The Palace, Inc.</span>
             </p>
-            <p className="text-[9px] font-bold text-stone-600 mt-0.5 uppercase tracking-widest">
+            <p className="text-[9px] font-bold text-stone-600 mt-0.5 uppercase tracking-widest text-center md:text-right">
               The Palace Tech House
             </p>
           </div>

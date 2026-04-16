@@ -15,7 +15,12 @@ import {
   FileText,
   Search,
   Check,
-  X
+  X,
+  Phone,
+  Mail,
+  Star,
+  ExternalLink,
+  Navigation
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -87,6 +92,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleApproveUpgrade = async (businessId: string, plan: string) => {
+    try {
+      const docRef = doc(db, 'businesses', businessId);
+      // When approving upgrade, update plan and clear pendingPlanUpdate
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+      await updateDoc(docRef, { 
+        plan, 
+        pendingPlanUpdate: null,
+        expiryDate: thirtyDaysFromNow,
+        verified: plan === 'featured' || plan === 'standard' // Auto-verify on paid plans
+      });
+      setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, plan: plan as any, pendingPlanUpdate: undefined, verified: true } : b));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `businesses/${businessId}/upgrade`);
+    }
+  };
+
   const filteredBusinesses = allBusinesses.filter(b => {
     const matchesSearch = b.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          b.ownerUid.toLowerCase().includes(searchQuery.toLowerCase());
@@ -114,7 +138,7 @@ export default function AdminDashboard() {
                 </div>
                 <h1 className="text-3xl font-black tracking-tight uppercase italic text-emerald-400">Palace Command</h1>
               </div>
-              <p className="text-stone-400 font-medium">Te Palace, Inc. Administration Portal</p>
+              <p className="text-stone-400 font-medium">The Palace, Inc. Administration Portal</p>
             </div>
             
             <div className="hidden md:flex gap-4">
@@ -207,7 +231,29 @@ export default function AdminDashboard() {
                       <span className="text-stone-400 font-bold uppercase tracking-widest">Region</span>
                       <span className="text-stone-900 font-black">{business.city}</span>
                     </div>
+                    <div className="pt-2 border-t border-stone-100 flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-[10px] text-stone-600">
+                        <Phone size={10} className="text-stone-400" />
+                        <span className="font-bold">{business.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-stone-600 truncate">
+                        <Mail size={10} className="text-stone-400" />
+                        <span className="font-bold">{business.email}</span>
+                      </div>
+                    </div>
                   </div>
+
+                  {business.pendingPlanUpdate && (
+                    <div className="mb-4 p-3 bg-purple-50 rounded-2xl border border-purple-100">
+                      <p className="text-[10px] font-black uppercase text-purple-700 mb-2">Upgrade Requested: {business.pendingPlanUpdate}</p>
+                      <button 
+                        onClick={() => handleApproveUpgrade(business.id, business.pendingPlanUpdate!)}
+                        className="w-full bg-purple-600 text-white text-[10px] font-black uppercase py-2 rounded-xl hover:bg-purple-700 transition-all"
+                      >
+                        Approve Upgrade
+                      </button>
+                    </div>
+                  )}
 
                   <div className="flex gap-2">
                     {business.status === 'pending' && (

@@ -84,10 +84,10 @@ export default function Pricing() {
             <h4 className="font-bold text-stone-900">How it works:</h4>
             <div className="space-y-6">
               {[
-                { step: 1, text: 'Select a plan and contact management.' },
-                { step: 2, text: 'Receive payment instructions (MTN MoMo/Airtel Money).' },
-                { step: 3, text: 'Send payment and screenshot of confirmation.' },
-                { step: 4, text: 'Admin activates your premium plan within 1 hour.' },
+                { step: 1, text: 'Go to your Dashboard and click "Request Upgrade" on your business listing.' },
+                { step: 2, text: 'Our team will contact you or you can contact us directly with your ID.' },
+                { step: 3, text: 'Send payment (MTN MoMo/Airtel Money) and share the confirmation.' },
+                { step: 4, text: 'Admin reviews and activates your premium plan within minutes.' },
               ].map((item) => (
                 <div key={item.step} className="flex gap-4">
                   <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-emerald-600 font-black text-sm shrink-0">

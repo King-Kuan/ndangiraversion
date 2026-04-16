@@ -56,8 +56,9 @@ export default function Dashboard() {
     if (!business) return;
     try {
       const docRef = doc(db, 'businesses', business.id);
-      await updateDoc(docRef, { plan });
-      setBusiness(prev => prev ? { ...prev, plan } : null);
+      await updateDoc(docRef, { pendingPlanUpdate: plan });
+      setBusiness(prev => prev ? { ...prev, pendingPlanUpdate: plan } : null);
+      alert("Upgrade request submitted! An admin will review your payment and approve the upgrade shortly.");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `businesses/${business.id}`);
     }
@@ -172,6 +173,16 @@ export default function Dashboard() {
                     <div className="pt-4 flex gap-4">
                       <Link to={`/business/${business.id}`} className="text-stone-900 border-b-2 border-stone-900 font-black text-xs uppercase tracking-widest hover:text-emerald-600 hover:border-emerald-600 transition-all">View Public Profile</Link>
                     </div>
+
+                    {business.pendingPlanUpdate && (
+                      <div className="mt-6 p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-center gap-4">
+                        <TrendingUp className="text-purple-600" size={20} />
+                        <div>
+                          <p className="text-xs font-bold text-purple-900">Upgrade to {business.pendingPlanUpdate} Pending</p>
+                          <p className="text-[10px] text-purple-600 font-medium">Under admin review. Please complete payment to activate.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

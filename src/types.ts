@@ -27,6 +27,7 @@ export interface BusinessListing {
   lng: number;
   status: BusinessStatus;
   plan: BusinessPlan;
+  pendingPlanUpdate?: BusinessPlan;
   photos: string[];
   ownerUid: string;
   rating: number;
