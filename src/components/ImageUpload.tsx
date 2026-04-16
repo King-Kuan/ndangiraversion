@@ -5,9 +5,10 @@ import { Camera, X, Loader2 } from 'lucide-react';
 interface ImageUploadProps {
   onUploadSuccess: (url: string) => void;
   maxFiles?: number;
+  currentCount?: number;
 }
 
-export default function ImageUpload({ onUploadSuccess, maxFiles = 10 }: ImageUploadProps) {
+export default function ImageUpload({ onUploadSuccess, maxFiles = 10, currentCount = 0 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,17 +68,19 @@ export default function ImageUpload({ onUploadSuccess, maxFiles = 10 }: ImageUpl
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <label className="w-24 h-24 border-2 border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-stone-50 transition-colors">
-          {uploading ? (
-            <Loader2 className="animate-spin text-emerald-600" size={24} />
-          ) : (
-            <>
-              <Camera className="text-stone-300" size={24} />
-              <span className="text-[10px] font-bold text-stone-400 mt-1">Add Photo</span>
-            </>
-          )}
-          <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={uploading} />
-        </label>
+        {currentCount < maxFiles && (
+          <label className="w-24 h-24 border-2 border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-stone-50 transition-colors">
+            {uploading ? (
+              <Loader2 className="animate-spin text-emerald-600" size={24} />
+            ) : (
+              <>
+                <Camera className="text-stone-300" size={24} />
+                <span className="text-[10px] font-bold text-stone-400 mt-1">Add Photo</span>
+              </>
+            )}
+            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={uploading} />
+          </label>
+        )}
       </div>
 
       {error && <p className="text-red-500 text-[10px] font-bold">{error}</p>}

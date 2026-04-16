@@ -293,6 +293,8 @@ export default function Register() {
                 <div className="md:col-span-2 space-y-4">
                   <ImageUpload 
                     onUploadSuccess={(url) => setFormData(p => ({ ...p, photos: [...p.photos, url] }))}
+                    currentCount={formData.photos.length}
+                    maxFiles={10}
                   />
                   {formData.photos.length > 0 && (
                     <div className="flex flex-wrap gap-2">
