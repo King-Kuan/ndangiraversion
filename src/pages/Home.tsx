@@ -4,7 +4,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { BusinessListing } from '../types';
 import { CITIES, CATEGORIES } from '../constants';
 import MapComponent from '../components/MapComponent';
-import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink } from 'lucide-react';
+import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -160,6 +160,20 @@ export default function Home() {
 
           {/* Results Main Area */}
           <div className="flex-grow flex flex-col gap-6">
+            {/* Trust Banner */}
+            <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm">
+              <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
+                <CheckCircle size={24} />
+              </div>
+              <div>
+                <h4 className="font-black text-emerald-900 text-sm uppercase tracking-wider mb-1">Choose Trusted Partners</h4>
+                <p className="text-xs text-emerald-700 leading-relaxed font-medium">Verified businesses on Ndangira are manually vetted for quality and reliability. We strongly recommend booking with Certified partners for the best experience.</p>
+              </div>
+              <Link to="/pricing" className="whitespace-nowrap bg-emerald-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-95 shadow-md">
+                Get Certified
+              </Link>
+            </div>
+
             {/* View Switcher */}
             <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-lg border border-stone-100">
               <div className="flex items-center gap-1">
@@ -228,7 +242,7 @@ export default function Home() {
                                 </div>
                               )}
                             </div>
-                            {business.verified && (
+                            {(business.verified || business.plan !== 'free') && (
                               <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full shadow-lg border-2 border-white/50 flex items-center gap-1">
                                 <Navigation size={10} className="rotate-45" />
                                 <span className="text-[9px] font-black uppercase tracking-tighter">Verified</span>
@@ -244,6 +258,11 @@ export default function Home() {
                                 <span className="text-xs font-bold">{business.rating || 'New'}</span>
                               </div>
                             </div>
+                            {(business.verified || business.plan !== 'free') && (
+                              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                <CheckCircle size={10} /> Certified Trusted Business
+                              </p>
+                            )}
                             <p className="text-xs text-stone-500 mb-4 line-clamp-2 leading-relaxed">{business.description}</p>
                             
                             <div className="mt-auto pt-4 border-t border-stone-50 flex items-center justify-between">

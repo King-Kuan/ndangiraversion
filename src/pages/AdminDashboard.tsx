@@ -300,7 +300,16 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex-grow">
                     <h4 className="font-bold text-stone-900 mb-1">{ad.title}</h4>
-                    <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-4">{ad.placement} CAMPAIGN</p>
+                    <div className="flex gap-2 items-center mb-3">
+                      <span className="text-[10px] font-black uppercase text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full tracking-wider">{ad.placement}</span>
+                      <span className="text-[10px] font-bold text-stone-400">{ad.city}</span>
+                    </div>
+                    {ad.description && <p className="text-[10px] text-stone-500 line-clamp-1 mb-2 italic">"{ad.description}"</p>}
+                    {ad.targetUrl && (
+                      <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 font-bold flex items-center gap-1 mb-4 hover:underline">
+                        <Navigation size={10} /> {ad.targetUrl}
+                      </a>
+                    )}
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleAction('palaceads', ad.id, 'active')}

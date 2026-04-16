@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { BusinessListing, PalaceAd } from '../types';
+import { BusinessListing, PalaceAd, AdPlacement, BusinessPlan } from '../types';
 import { 
   Building2, 
   Settings, 
@@ -20,9 +20,12 @@ import {
   Eye,
   Star as StarIcon,
   Navigation,
-  MapPin
+  MapPin,
+  X,
+  Image as ImageIcon,
+  ExternalLink as LinkIcon
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -30,6 +33,16 @@ export default function Dashboard() {
   const [business, setBusiness] = useState<BusinessListing | null>(null);
   const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [isAdModalOpen, setIsAdModalOpen] = useState(false);
+  const [newAd, setNewAd] = useState({
+    title: '',
+    description: '',
+    image: '',
+    targetUrl: '',
+    placement: 'ribbon' as AdPlacement
+  });
+  const [isUploading, setIsUploading] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -39,7 +52,7 @@ export default function Dashboard() {
       const busSnapshot = await getDocs(busQuery);
       if (!busSnapshot.empty) {
         const doc = busSnapshot.docs[0];
-        setBusiness({ id: doc.id, ...doc.data() } as BusinessListing & { views?: number });
+        setBusiness({ id: doc.id, ...doc.data() } as BusinessListing);
       }
 
       const adsQuery = query(collection(db, 'palaceads'), where('ownerUid', '==', user.uid));
@@ -49,6 +62,30 @@ export default function Dashboard() {
       handleFirestoreError(error, OperationType.LIST, 'dashboard/data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAdCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !business) return;
+    setIsUploading(true);
+    try {
+      const adData = {
+        ...newAd,
+        ownerUid: user.uid,
+        city: business.city,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      };
+      const docRef = await addDoc(collection(db, 'palaceads'), adData);
+      setAds(prev => [{ id: docRef.id, ...adData, createdAt: { seconds: Date.now()/1000 } } as PalaceAd, ...prev]);
+      setIsAdModalOpen(false);
+      setNewAd({ title: '', description: '', image: '', targetUrl: '', placement: 'ribbon' });
+      alert("Campaign submitted for approval! Our team will review your request shortly.");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'palaceads');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -111,8 +148,8 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {[
-          { label: 'Total Views', value: (business as any)?.views || 0, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
-          { label: 'Map Clicks', value: 'Coming soon', icon: Navigation, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+          { label: 'Total Views', value: business?.views || 0, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
+          { label: 'Map Clicks', value: business?.mapClicks || 0, icon: Navigation, color: 'text-emerald-500', bg: 'bg-emerald-50' },
           { label: 'Ratings', value: business?.rating || 0, icon: StarIcon, color: 'text-yellow-500', bg: 'bg-yellow-50' },
           { label: 'Total Ads', value: ads.length, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
         ].map((stat, i) => (
@@ -210,7 +247,10 @@ export default function Dashboard() {
                 <Megaphone className="text-purple-600" />
                 PalaceAds
               </h2>
-              <button className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-purple-700 shadow-md">
+              <button 
+                onClick={() => setIsAdModalOpen(true)}
+                className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-purple-700 shadow-md"
+              >
                 <Plus size={18} />
                 New Campaign
               </button>
@@ -298,6 +338,114 @@ export default function Dashboard() {
           </div>
         </aside>
       </div>
+      {/* Ad Creation Modal */}
+      <AnimatePresence>
+        {isAdModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAdModalOpen(false)}
+              className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="p-8 border-b border-stone-100 flex items-center justify-between">
+                <h3 className="text-2xl font-black text-stone-900">New Campaign</h3>
+                <button onClick={() => setIsAdModalOpen(false)} className="text-stone-400 hover:text-stone-900 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAdCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Campaign Type</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'ribbon', label: 'Ribbon', desc: 'Words only' },
+                      { id: 'popup', label: 'Pop-up', desc: 'Img + words' },
+                      { id: 'redirect', label: 'Redirect', desc: 'Direct link' },
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setNewAd(prev => ({ ...prev, placement: t.id as AdPlacement }))}
+                        className={`p-4 rounded-2xl border-2 transition-all text-left ${newAd.placement === t.id ? 'border-purple-600 bg-purple-50' : 'border-stone-100 hover:border-stone-200'}`}
+                      >
+                        <p className={`text-xs font-black uppercase tracking-wide ${newAd.placement === t.id ? 'text-purple-700' : 'text-stone-900'}`}>{t.label}</p>
+                        <p className="text-[10px] text-stone-400 font-medium">{t.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Headline / Words</label>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Enter short engaging words..."
+                    className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
+                    value={newAd.title}
+                    onChange={(e) => setNewAd(prev => ({ ...prev, title: e.target.value }))}
+                  />
+                </div>
+
+                {newAd.placement === 'popup' && (
+                  <>
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Image URL</label>
+                      <input 
+                        type="url"
+                        placeholder="https://..."
+                        className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
+                        value={newAd.image}
+                        onChange={(e) => setNewAd(prev => ({ ...prev, image: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Description</label>
+                      <textarea 
+                        className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
+                        placeholder="Additional details for the popup..."
+                        value={newAd.description}
+                        onChange={(e) => setNewAd(prev => ({ ...prev, description: e.target.value }))}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {(newAd.placement === 'popup' || newAd.placement === 'redirect') && (
+                  <div>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Target URL / Link</label>
+                    <input 
+                      type="url"
+                      required
+                      placeholder="https://yourwebsite.com"
+                      className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
+                      value={newAd.targetUrl}
+                      onChange={(e) => setNewAd(prev => ({ ...prev, targetUrl: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                <button 
+                  type="submit"
+                  disabled={isUploading}
+                  className="w-full bg-purple-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                >
+                  {isUploading ? 'Submitting...' : 'Submit Campaign'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

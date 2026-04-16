@@ -4,6 +4,8 @@ import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { LogIn, LogOut, LayoutDashboard, User, Search, MapPin, PlusCircle } from 'lucide-react';
 
+import { GlobalRibbon } from './AdComponents';
+
 interface LayoutProps {
   children: ReactNode;
 }
@@ -19,12 +21,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 font-sans">
-      {/* Ad TickerPlaceholder */}
-      <div className="bg-yellow-400 text-stone-900 py-2 overflow-hidden whitespace-nowrap border-b border-stone-200">
-        <div className="animate-marquee inline-block">
-          🚀 Welcome to Ndangira - Rwanda's First Business Discovery Platform! • Add your business for FREE today! • Best restaurants in Kigali now featured! • Find services near you! 🚀
-        </div>
-      </div>
+      <GlobalRibbon />
 
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">

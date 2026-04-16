@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Pricing from './pages/Pricing';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import { PalacePopup } from './components/AdComponents';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -23,6 +24,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <PalacePopup />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />

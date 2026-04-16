@@ -85,6 +85,8 @@ export default function Register() {
         ownerUid: user.uid,
         rating: 0,
         reviewCount: 0,
+        mapClicks: 0,
+        views: 0,
         verified: false,
         expiryDate: thirtyDaysFromNow,
         createdAt: serverTimestamp()

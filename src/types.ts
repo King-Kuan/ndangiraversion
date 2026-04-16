@@ -2,7 +2,7 @@ export type UserRole = 'user' | 'admin';
 export type BusinessStatus = 'pending' | 'active' | 'rejected';
 export type BusinessPlan = 'free' | 'standard' | 'featured';
 export type AdStatus = 'pending' | 'active' | 'expired';
-export type AdPlacement = 'ticker' | 'inline' | 'sidebar';
+export type AdPlacement = 'ribbon' | 'popup' | 'redirect';
 
 export interface UserProfile {
   uid: string;
@@ -32,6 +32,8 @@ export interface BusinessListing {
   ownerUid: string;
   rating: number;
   reviewCount: number;
+  mapClicks: number;
+  views: number;
   verified: boolean;
   expiryDate?: any;
   createdAt: any;

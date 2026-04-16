@@ -85,6 +85,22 @@ export default function BusinessDetail() {
     }
   };
 
+  const handleGetDirections = async () => {
+    if (!id) return;
+    try {
+      const docRef = doc(db, 'businesses', id);
+      await updateDoc(docRef, {
+        mapClicks: increment(1)
+      });
+    } catch (error) {
+      console.error('Failed to increment map clicks', error);
+    }
+  };
+
+  const visiblePhotos = business 
+    ? (business.plan === 'free' ? business.photos.slice(0, 1) : business.photos.slice(0, 10))
+    : [];
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 flex flex-col items-center justify-center">
@@ -107,9 +123,9 @@ export default function BusinessDetail() {
     <div className="flex flex-col pb-20">
       {/* Background Header */}
       <div className="h-64 md:h-96 relative bg-stone-900">
-        {business.photos?.[0] ? (
+        {visiblePhotos[0] ? (
           <img 
-            src={business.photos[0]} 
+            src={visiblePhotos[0]} 
             alt={business.name} 
             className="w-full h-full object-cover opacity-60"
             referrerPolicy="no-referrer"
@@ -136,7 +152,7 @@ export default function BusinessDetail() {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-3xl md:text-5xl font-black text-stone-900 tracking-tight">{business.name}</h1>
-                    {business.verified && (
+                    {(business.verified || business.plan !== 'free') && (
                       <CheckCircle size={28} className="text-emerald-600 fill-emerald-50" />
                     )}
                   </div>
@@ -155,6 +171,7 @@ export default function BusinessDetail() {
                   href={`https://www.google.com/maps/dir/?api=1&destination=${business.lat},${business.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleGetDirections}
                   className="flex items-center gap-3 bg-stone-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-stone-800 transition-all shadow-xl active:scale-95 text-sm md:text-base self-start"
                 >
                   <Navigation size={20} className="rotate-45" />
@@ -167,11 +184,11 @@ export default function BusinessDetail() {
               </div>
 
               {/* Photos Gallery */}
-              {business.photos && business.photos.length > 1 && (
+              {visiblePhotos.length > 1 && (
                 <div className="mt-12 space-y-4">
                   <h3 className="font-bold text-lg tracking-tight">Gallery</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {business.photos.slice(1).map((photo, i) => (
+                    {visiblePhotos.slice(1).map((photo, i) => (
                       <div key={i} className="aspect-square rounded-2xl overflow-hidden bg-stone-100">
                         <img 
                           src={photo} 
@@ -182,6 +199,12 @@ export default function BusinessDetail() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+              {business.plan === 'free' && business.photos.length > 1 && (
+                <div className="mt-8 p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-widest mb-2">Upgrade to see all photos</p>
+                  <p className="text-xs text-emerald-600">Standard and Featured plans allow displaying up to 10 photos of your location and services.</p>
                 </div>
               )}
             </div>
