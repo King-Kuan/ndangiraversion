@@ -5,7 +5,8 @@ import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { CITIES, CATEGORIES } from '../constants';
 import GPSPicker from '../components/GPSPicker';
-import { Building2, Mail, Lock, User, Phone, Globe, Info, Map as MapIcon, ChevronRight, Check } from 'lucide-react';
+import ImageUpload from '../components/ImageUpload';
+import { Building2, Mail, Lock, User, Phone, Globe, Info, Map as MapIcon, ChevronRight, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Register() {
@@ -25,7 +26,8 @@ export default function Register() {
     businessWebsite: '',
     businessAddress: '',
     lat: -1.9441,
-    lng: 30.0619
+    lng: 30.0619,
+    photos: [] as string[]
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -73,13 +75,24 @@ export default function Register() {
         lng: formData.lng,
         status: 'pending',
         plan: 'free',
-        photos: [],
+        photos: formData.photos,
         ownerUid: user.uid,
         rating: 0,
         reviewCount: 0,
         verified: false,
         createdAt: serverTimestamp()
       });
+
+      // 4. Send Welcome Email via our API
+      try {
+        await fetch('/api/email/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, name: formData.name })
+        });
+      } catch (e) {
+        console.error("Email notification failed", e);
+      }
 
       navigate('/dashboard');
     } catch (error) {
@@ -264,6 +277,28 @@ export default function Register() {
                       onChange={(e) => handleInputChange('businessWebsite', e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div className="md:col-span-2 space-y-4">
+                  <ImageUpload 
+                    onUploadSuccess={(url) => setFormData(p => ({ ...p, photos: [...p.photos, url] }))}
+                  />
+                  {formData.photos.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.photos.map((url, i) => (
+                        <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-stone-200">
+                          <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <button 
+                            type="button"
+                            onClick={() => setFormData(p => ({ ...p, photos: p.photos.filter((_, idx) => idx !== i) }))}
+                            className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
