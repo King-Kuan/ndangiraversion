@@ -42,7 +42,14 @@ export default function Home() {
 
       const snapshot = await getDocs(q);
       const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing));
-      setBusinesses(results);
+      
+      // Sort: Featured first, then Standard, then Free
+      const sortedResults = results.sort((a, b) => {
+        const planOrder = { featured: 0, standard: 1, free: 2 };
+        return planOrder[a.plan] - planOrder[b.plan];
+      });
+
+      setBusinesses(sortedResults);
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'businesses');
     } finally {
@@ -210,12 +217,21 @@ export default function Home() {
                                 <Search size={32} />
                               </div>
                             )}
-                            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-sm">
-                              {business.category}
+                            <div className="absolute top-4 left-4 flex flex-col gap-2">
+                              <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-sm w-fit">
+                                {business.category}
+                              </div>
+                              {business.plan === 'featured' && (
+                                <div className="bg-yellow-400 text-stone-900 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 w-fit">
+                                  <Star size={10} fill="currentColor" />
+                                  <span>Featured</span>
+                                </div>
+                              )}
                             </div>
                             {business.verified && (
-                              <div className="absolute top-4 right-4 bg-emerald-600 text-white p-1 rounded-full shadow-md">
-                                <Navigation size={12} className="rotate-45" />
+                              <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full shadow-lg border-2 border-white/50 flex items-center gap-1">
+                                <Navigation size={10} className="rotate-45" />
+                                <span className="text-[9px] font-black uppercase tracking-tighter">Verified</span>
                               </div>
                             )}
                           </div>

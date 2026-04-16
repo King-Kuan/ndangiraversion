@@ -65,6 +65,9 @@ export default function Register() {
       });
 
       // 3. Create Business Listing
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
       await setDoc(doc(db, 'businesses', `${user.uid}_primary`), {
         name: formData.businessName,
         description: formData.businessDescription,
@@ -83,16 +86,21 @@ export default function Register() {
         rating: 0,
         reviewCount: 0,
         verified: false,
+        expiryDate: thirtyDaysFromNow,
         createdAt: serverTimestamp()
       });
 
       // 4. Send Welcome Email via our API
       try {
-        await fetch('/api/email/welcome', {
+        const emailRes = await fetch('/api/email/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email, name: formData.name })
         });
+        if (!emailRes.ok) {
+          const emailData = await emailRes.json();
+          console.warn("Email API response not OK:", emailData);
+        }
       } catch (e) {
         console.error("Email notification failed", e);
       }

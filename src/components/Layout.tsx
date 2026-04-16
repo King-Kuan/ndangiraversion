@@ -135,8 +135,16 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-stone-800 text-center text-xs">
-          &copy; {new Date().getFullYear()} Ndangira. All rights reserved.
+        <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-stone-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium">
+          <p>&copy; {new Date().getFullYear()} Ndangira. All rights reserved.</p>
+          <div className="flex flex-col items-center md:items-end">
+            <p className="font-black uppercase tracking-[0.2em] text-stone-500">
+              Created by <span className="text-emerald-500">Te Palace, Inc.</span>
+            </p>
+            <p className="text-[9px] font-bold text-stone-600 mt-0.5 uppercase tracking-widest">
+              The Palace Tech House
+            </p>
+          </div>
         </div>
       </footer>
     </div>

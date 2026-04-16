@@ -46,17 +46,23 @@ app.post("/api/email/welcome", async (req, res) => {
     // NOTE: Resend requires a verified domain to send from anything other than 'onboarding@resend.dev'
     const fromEmail = process.env.NODE_ENV === 'production' && !process.env.RESEND_VERIFIED ? 'onboarding@resend.dev' : 'Ndangira <management@ndangira.rw>';
     
-    await resend.emails.send({
+    const data = await resend.emails.send({
       from: fromEmail,
       to: email,
       subject: 'Welcome to Ndangira - We received your listing',
       html: `<p>Hello ${name},</p><p>Thank you for registering your business with Ndangira. Our team is currently reviewing your listing and we will notify you once it goes live.</p>`
     });
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Resend Error:", error);
-    // Don't fail the whole registration if email fails
-    res.json({ success: false, error: "Failed to send email" });
+    console.log("Resend Success:", data);
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error("Resend Error Detail:", error);
+    // Return detailed error in development to help user
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to send email", 
+      details: error.message,
+      code: error.code || error.statusCode
+    });
   }
 });
 

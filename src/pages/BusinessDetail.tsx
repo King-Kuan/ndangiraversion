@@ -1,30 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { BusinessListing, Review } from '../types';
 import MapComponent from '../components/MapComponent';
-import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { motion } from 'framer-motion';
 
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
-  const [business, setBusiness] = useState<BusinessListing | null>(null);
+  const [business, setBusiness] = useState<BusinessListing & { views?: number } | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
   const [newReview, setNewReview] = useState({ content: '', rating: 5 });
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  const fetchBusiness = async () => {
+  const fetchBusiness = async (isFirstLoad = false) => {
     if (!id) return;
-    setLoading(true);
+    if (isFirstLoad) setLoading(true);
     try {
       const docRef = doc(db, 'businesses', id);
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         setBusiness({ id: snapshot.id, ...snapshot.data() } as BusinessListing);
+        
+        // Increment views on first load
+        if (isFirstLoad) {
+          await updateDoc(docRef, {
+            views: increment(1)
+          }).catch(console.error);
+        }
       }
       
       const reviewsSnapshot = await getDocs(query(collection(db, 'reviews'), where('businessId', '==', id)));
@@ -32,12 +39,14 @@ export default function BusinessDetail() {
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `businesses/${id}`);
     } finally {
+      if (isFirstLoad) setLoading(true); 
+      // Note: we set loading false at end of useEffect if we desire, but here we can manage it
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBusiness();
+    fetchBusiness(true);
   }, [id]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -49,15 +58,26 @@ export default function BusinessDetail() {
       const reviewData = {
         businessId: id,
         userId: user.uid,
-        userName: user.displayName || 'Anonymous User',
+        userName: user.displayName || user.email?.split('@')[0] || 'Anonymous User',
         rating: newReview.rating,
         content: newReview.content,
         createdAt: serverTimestamp()
       };
       
       await addDoc(collection(db, 'reviews'), reviewData);
+      
+      // Update business rating/count
+      const docRef = doc(db, 'businesses', id);
+      const newCount = (business.reviewCount || 0) + 1;
+      const newRating = ((business.rating || 0) * (business.reviewCount || 0) + newReview.rating) / newCount;
+      
+      await updateDoc(docRef, {
+        reviewCount: newCount,
+        rating: Number(newRating.toFixed(1))
+      });
+
       setNewReview({ content: '', rating: 5 });
-      fetchBusiness();
+      fetchBusiness(false);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'reviews');
     } finally {

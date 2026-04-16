@@ -31,30 +31,40 @@ export default function Dashboard() {
   const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchData = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const busQuery = query(collection(db, 'businesses'), where('ownerUid', '==', user.uid));
+      const busSnapshot = await getDocs(busQuery);
+      if (!busSnapshot.empty) {
+        const doc = busSnapshot.docs[0];
+        setBusiness({ id: doc.id, ...doc.data() } as BusinessListing & { views?: number });
+      }
+
+      const adsQuery = query(collection(db, 'palaceads'), where('ownerUid', '==', user.uid));
+      const adsSnapshot = await getDocs(adsQuery);
+      setAds(adsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'dashboard/data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (plan: BusinessPlan) => {
+    if (!business) return;
+    try {
+      const docRef = doc(db, 'businesses', business.id);
+      await updateDoc(docRef, { plan });
+      setBusiness(prev => prev ? { ...prev, plan } : null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `businesses/${business.id}`);
+    }
+  };
+
   useEffect(() => {
     if (!loadingAuth && !user) navigate('/login');
-    
-    const fetchData = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const busQuery = query(collection(db, 'businesses'), where('ownerUid', '==', user.uid));
-        const busSnapshot = await getDocs(busQuery);
-        if (!busSnapshot.empty) {
-          const doc = busSnapshot.docs[0];
-          setBusiness({ id: doc.id, ...doc.data() } as BusinessListing);
-        }
-
-        const adsQuery = query(collection(db, 'palaceads'), where('ownerUid', '==', user.uid));
-        const adsSnapshot = await getDocs(adsQuery);
-        setAds(adsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'dashboard/data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [user, loadingAuth, navigate]);
 
@@ -100,10 +110,10 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {[
-          { label: 'Total Views', value: '1,284', icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
-          { label: 'Map Clicks', value: '432', icon: Navigation, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-          { label: 'New Reviews', value: '12', icon: StarIcon, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-          { label: 'Ad Clicks', value: '89', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
+          { label: 'Total Views', value: (business as any)?.views || 0, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
+          { label: 'Map Clicks', value: 'Coming soon', icon: Navigation, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+          { label: 'Ratings', value: business?.rating || 0, icon: StarIcon, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+          { label: 'Total Ads', value: ads.length, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
         ].map((stat, i) => (
           <motion.div 
             key={i}
@@ -232,7 +242,24 @@ export default function Dashboard() {
             <p className="text-xs font-medium text-emerald-100 opacity-80 leading-relaxed mb-8">
               Ndangira is built for growth. Upgrade to a standard plan to unlock up to 10 photos and higher visibility.
             </p>
-            <Link to="/pricing" className="inline-block bg-white text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg">Upgrade Now</Link>
+            <div className="flex gap-4">
+              {business.plan !== 'featured' && (
+                <button 
+                  onClick={() => handleUpgrade('featured')}
+                  className="inline-block bg-white text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 transition-transform"
+                >
+                  Upgrade to Featured
+                </button>
+              )}
+              {business.plan === 'free' && (
+                <button 
+                  onClick={() => handleUpgrade('standard')}
+                  className="inline-block bg-emerald-100 text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 transition-transform"
+                >
+                  Go Standard
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-stone-100">

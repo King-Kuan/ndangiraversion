@@ -22,10 +22,12 @@ export default function AdminDashboard() {
   const [user, loadingAuth] = useAuthState(auth);
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [pendingBusinesses, setPendingBusinesses] = useState<BusinessListing[]>([]);
+  const [allBusinesses, setAllBusinesses] = useState<BusinessListing[]>([]);
   const [pendingAds, setPendingAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalUsers: 0, totalBusinesses: 0, totalAds: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'listings' | 'ads'>('listings');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'rejected'>('all');
 
   useEffect(() => {
     if (!loadingAuth && !user) navigate('/login');
@@ -52,16 +54,14 @@ export default function AdminDashboard() {
     const fetchAdminData = async () => {
       setLoading(true);
       try {
-        const busQuery = query(collection(db, 'businesses'), where('status', '==', 'pending'), limit(20));
-        const busSnapshot = await getDocs(busQuery);
-        setPendingBusinesses(busSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing)));
+        // Fetch All Businesses
+        const busSnapshot = await getDocs(collection(db, 'businesses'));
+        setAllBusinesses(busSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing)));
 
-        const adsQuery = query(collection(db, 'palaceads'), where('status', '==', 'pending'), limit(20));
+        // Fetch Pending Ads
+        const adsQuery = query(collection(db, 'palaceads'), where('status', '==', 'pending'), limit(50));
         const adsSnapshot = await getDocs(adsQuery);
         setPendingAds(adsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
-
-        // Stats (Simple placeholder for now)
-        setStats({ totalUsers: 0, totalBusinesses: 0, totalAds: 0 });
       } catch (error) {
         handleFirestoreError(error, OperationType.LIST, 'admin/data');
       } finally {
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
       await updateDoc(docRef, { status });
       
       if (collectionName === 'businesses') {
-        setPendingBusinesses(prev => prev.filter(b => b.id !== id));
+        setAllBusinesses(prev => prev.map(b => b.id === id ? { ...b, status } : b));
       } else {
         setPendingAds(prev => prev.filter(a => a.id !== id));
       }
@@ -86,6 +86,13 @@ export default function AdminDashboard() {
       handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
     }
   };
+
+  const filteredBusinesses = allBusinesses.filter(b => {
+    const matchesSearch = b.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         b.ownerUid.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filterStatus === 'all' ? true : b.status === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
 
   if (loadingAuth || !isAdmin) {
     return (
@@ -99,121 +106,180 @@ export default function AdminDashboard() {
     <div className="bg-stone-50 min-h-screen">
       <div className="bg-stone-900 text-white py-12 mb-8">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
-              <ShieldCheck size={24} />
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+                  <ShieldCheck size={24} />
+                </div>
+                <h1 className="text-3xl font-black tracking-tight uppercase italic text-emerald-400">Palace Command</h1>
+              </div>
+              <p className="text-stone-400 font-medium">Te Palace, Inc. Administration Portal</p>
             </div>
-            <h1 className="text-3xl font-black tracking-tight">System Administration</h1>
+            
+            <div className="hidden md:flex gap-4">
+              <div className="bg-stone-800/50 p-4 rounded-2xl border border-stone-700">
+                <p className="text-[10px] uppercase font-black text-stone-500 mb-1">Total Assets</p>
+                <p className="text-xl font-bold">{allBusinesses.length}</p>
+              </div>
+            </div>
           </div>
-          <p className="text-stone-400 font-medium">Moderate business listings, approve ad campaigns, and manage users.</p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Business Moderation */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Building2 size={20} className="text-stone-400" />
-                Pending Listings
-              </h2>
-              <span className="bg-stone-200 text-stone-700 px-3 py-1 rounded-full text-xs font-bold tracking-widest">{pendingBusinesses.length}</span>
-            </div>
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8">
+          <button 
+            onClick={() => setActiveTab('listings')}
+            className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'listings' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
+          >
+            Business Inventory
+          </button>
+          <button 
+            onClick={() => setActiveTab('ads')}
+            className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'ads' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
+          >
+            Ad Queue ({pendingAds.length})
+          </button>
+        </div>
 
-            {pendingBusinesses.length > 0 ? (
-              <div className="space-y-4">
-                {pendingBusinesses.map(business => (
-                  <div key={business.id} className="bg-white p-6 rounded-3xl shadow-sm border border-stone-100">
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="w-16 h-16 bg-stone-100 rounded-2xl shrink-0 overflow-hidden">
-                        {business.photos?.[0] && <img src={business.photos[0]} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
-                      </div>
-                      <div className="flex-grow">
-                        <h4 className="font-bold text-stone-900">{business.name}</h4>
-                        <p className="text-xs text-stone-400 font-bold uppercase tracking-widest">{business.city} • {business.category}</p>
-                        <p className="text-xs text-stone-500 mt-2 line-clamp-2">{business.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleAction('businesses', business.id, 'active')}
-                        className="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2"
-                      >
-                        <Check size={16} /> Approve
-                      </button>
-                      <button 
-                        onClick={() => handleAction('businesses', business.id, 'rejected')}
-                        className="flex-grow bg-stone-100 hover:bg-stone-200 text-stone-600 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2"
-                      >
-                        <X size={16} /> Reject
-                      </button>
-                      <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}`}
-                        target="_blank"
-                        className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:text-stone-900"
-                      >
-                        <Search size={16} />
-                      </a>
-                    </div>
-                  </div>
+        {activeTab === 'listings' ? (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col md:flex-row gap-4 items-center">
+              <div className="flex-grow flex items-center gap-4 bg-stone-50 px-6 py-4 rounded-2xl w-full">
+                <Search className="text-stone-300" size={20} />
+                <input 
+                  type="text" 
+                  placeholder="Search by business name or user ID..."
+                  className="bg-transparent border-none focus:ring-0 w-full text-stone-900"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 w-full md:w-auto">
+                {['all', 'pending', 'active', 'rejected'].map((s) => (
+                  <button 
+                    key={s}
+                    onClick={() => setFilterStatus(s as any)}
+                    className={`flex-grow md:flex-initial px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${filterStatus === s ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-400'}`}
+                  >
+                    {s}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <div className="bg-white border-2 border-dashed border-stone-200 rounded-3xl p-12 text-center">
-                <p className="text-stone-400 text-sm italic">No pending business listings.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredBusinesses.map(business => (
+                <div key={business.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-stone-100 flex flex-col">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="w-16 h-16 bg-stone-100 rounded-2xl shrink-0 overflow-hidden">
+                      {business.photos?.[0] && <img src={business.photos[0]} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                    </div>
+                    <div className="flex-grow">
+                      <h4 className="font-bold text-stone-900 truncate">{business.name}</h4>
+                      <div className="flex gap-2 mt-1">
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                          business.plan === 'featured' ? 'bg-purple-100 text-purple-700' :
+                          business.plan === 'standard' ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'
+                        }`}>
+                          {business.plan}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                          business.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                          business.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {business.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-stone-50 rounded-2xl p-4 space-y-3 mb-6 flex-grow">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-stone-400 font-bold uppercase tracking-widest">Expires</span>
+                      <span className="text-stone-900 font-black">
+                        {business.expiryDate?.seconds ? new Date(business.expiryDate.seconds * 1000).toLocaleDateString() : 'Never'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-stone-400 font-bold uppercase tracking-widest">Region</span>
+                      <span className="text-stone-900 font-black">{business.city}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {business.status === 'pending' && (
+                      <button 
+                        onClick={() => handleAction('businesses', business.id, 'active')}
+                        className="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white h-12 rounded-xl font-bold text-xs"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    {business.status === 'active' && (
+                      <button 
+                        className="flex-grow bg-stone-100 text-stone-400 h-12 rounded-xl font-bold text-xs cursor-default"
+                      >
+                        Active
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleAction('businesses', business.id, 'rejected')}
+                      className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredBusinesses.length === 0 && (
+              <div className="bg-white border-2 border-dashed border-stone-200 rounded-[3rem] p-24 text-center">
+                <Search size={48} className="mx-auto text-stone-200 mb-6" />
+                <h3 className="text-xl font-bold text-stone-900 mb-2">No Matching Listings</h3>
+                <p className="text-stone-400 text-sm">Try adjusting your filters or search query.</p>
               </div>
             )}
           </div>
-
-          {/* Ad Moderation */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <ShieldCheck size={20} className="text-stone-400" />
-                Pending Ads
-              </h2>
-              <span className="bg-stone-200 text-stone-700 px-3 py-1 rounded-full text-xs font-bold tracking-widest">{pendingAds.length}</span>
-            </div>
-
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {pendingAds.length > 0 ? (
-              <div className="space-y-4">
-                {pendingAds.map(ad => (
-                  <div key={ad.id} className="bg-white p-6 rounded-3xl shadow-sm border border-stone-100">
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="w-16 h-16 bg-stone-100 rounded-2xl shrink-0">
-                        {ad.image && <img src={ad.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
-                      </div>
-                      <div className="flex-grow">
-                        <h4 className="font-bold text-stone-900">{ad.title}</h4>
-                        <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{ad.placement} • Campaign</p>
-                      </div>
-                    </div>
+              pendingAds.map(ad => (
+                <div key={ad.id} className="bg-white p-8 rounded-[3rem] shadow-sm border border-stone-100 flex gap-6 items-center">
+                  <div className="w-24 h-24 bg-stone-100 rounded-3xl shrink-0 overflow-hidden">
+                    {ad.image && <img src={ad.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                  </div>
+                  <div className="flex-grow">
+                    <h4 className="font-bold text-stone-900 mb-1">{ad.title}</h4>
+                    <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-4">{ad.placement} CAMPAIGN</p>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleAction('palaceads', ad.id, 'active')}
-                        className="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2"
+                        className="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs"
                       >
-                        <Check size={16} /> Activate
+                        Activate
                       </button>
                       <button 
                         onClick={() => handleAction('palaceads', ad.id, 'expired')}
-                        className="flex-grow bg-stone-100 hover:bg-stone-200 text-stone-600 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2"
+                        className="bg-stone-100 px-4 py-3 rounded-xl text-stone-400 hover:text-red-600"
                       >
-                        <X size={16} /> Reject
+                        <X size={18} />
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             ) : (
-              <div className="bg-white border-2 border-dashed border-stone-200 rounded-3xl p-12 text-center">
-                <p className="text-stone-400 text-sm italic">No pending ad campaigns.</p>
+              <div className="col-span-full bg-white border-2 border-dashed border-stone-200 rounded-[3rem] p-24 text-center">
+                <ShieldCheck size={48} className="mx-auto text-stone-200 mb-6" />
+                <p className="text-stone-400 text-sm italic">Queue is empty. No pending ad campaigns.</p>
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

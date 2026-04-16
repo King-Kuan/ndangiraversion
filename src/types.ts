@@ -32,6 +32,7 @@ export interface BusinessListing {
   rating: number;
   reviewCount: number;
   verified: boolean;
+  expiryDate?: any;
   createdAt: any;
 }
 
