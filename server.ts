@@ -22,9 +22,14 @@ async function startServer() {
 
   app.get("/api/imagekit/auth", (req, res) => {
     try {
+      if (!process.env.IMAGEKIT_PRIVATE_KEY) {
+        console.error("IMAGEKIT_PRIVATE_KEY is missing in environment variables");
+        return res.status(500).json({ error: "Server misconfiguration: Private Key missing" });
+      }
       const result = imagekit.getAuthenticationParameters();
       res.json(result);
     } catch (error) {
+      console.error("ImageKit Auth Error:", error);
       res.status(500).json({ error: "Failed to get auth params" });
     }
   });

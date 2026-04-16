@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
-import { CITIES, CATEGORIES } from '../constants';
+import { CITIES, CATEGORIES, PLANS } from '../constants';
 import GPSPicker from '../components/GPSPicker';
 import ImageUpload from '../components/ImageUpload';
 import { Building2, Mail, Lock, User, Phone, Globe, Info, Map as MapIcon, ChevronRight, Check, X, AlertCircle } from 'lucide-react';
@@ -26,6 +26,7 @@ export default function Register() {
     businessEmail: '',
     businessWebsite: '',
     businessAddress: '',
+    plan: 'free',
     lat: -1.9441,
     lng: 30.0619,
     photos: [] as string[]
@@ -76,7 +77,7 @@ export default function Register() {
         lat: formData.lat,
         lng: formData.lng,
         status: 'pending',
-        plan: 'free',
+        plan: formData.plan,
         photos: formData.photos,
         ownerUid: user.uid,
         rating: 0,
@@ -115,7 +116,7 @@ export default function Register() {
         {/* Progress Header */}
         <div className="w-full flex items-center justify-between mb-16 relative">
           <div className="absolute top-1/2 left-0 w-full h-0.5 bg-stone-200 -z-10 translate-y-1/2" />
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex flex-col items-center gap-3">
               <div 
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all shadow-xl ${
@@ -125,7 +126,7 @@ export default function Register() {
                 {step > s ? <Check size={24} /> : s}
               </div>
               <span className={`text-[10px] font-black uppercase tracking-widest ${step >= s ? 'text-emerald-700' : 'text-stone-300'}`}>
-                {s === 1 ? 'Ownership' : s === 2 ? 'Details' : 'Location'}
+                {s === 1 ? 'Ownership' : s === 2 ? 'Details' : s === 3 ? 'Plan' : 'Location'}
               </span>
             </div>
           ))}
@@ -328,7 +329,7 @@ export default function Register() {
                   onClick={() => setStep(3)}
                   className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all"
                 >
-                  <span>Set Pin Drop Location</span>
+                  <span>Choose Plan</span>
                   <ChevronRight size={20} />
                 </button>
               </div>
@@ -336,6 +337,70 @@ export default function Register() {
           )}
 
           {step === 3 && (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+              <h2 className="text-3xl font-black text-stone-900 mb-2">Choose Plan</h2>
+              <p className="text-stone-400 text-sm mb-12">Select the visibility and features that match your needs.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {PLANS.map((p) => (
+                  <div 
+                    key={p.id}
+                    onClick={() => handleInputChange('plan', p.id)}
+                    className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all ${
+                      formData.plan === p.id 
+                        ? 'border-emerald-600 bg-emerald-50 ring-4 ring-emerald-50' 
+                        : 'border-stone-100 hover:border-stone-200 bg-white'
+                    }`}
+                  >
+                    <div className="mb-6">
+                      <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center ${
+                        formData.plan === p.id ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-400'
+                      }`}>
+                        {p.id === 'free' ? <Building2 size={20} /> : p.id === 'standard' ? <Check size={20} /> : <Check size={20} />}
+                      </div>
+                      <h4 className="font-black text-stone-900 uppercase tracking-widest text-xs mb-1">{p.name}</h4>
+                      <p className="text-xl font-black text-stone-900">{p.price}</p>
+                    </div>
+                    
+                    <ul className="space-y-3 mb-8">
+                      {p.features.map((feat, i) => (
+                        <li key={i} className="text-[10px] font-bold text-stone-500 flex items-start gap-2">
+                          <Check size={12} className="text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className={`w-full py-3 rounded-xl text-center text-[10px] font-black uppercase tracking-widest transition-all ${
+                      formData.plan === p.id ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-400'
+                    }`}>
+                      {formData.plan === p.id ? 'Selected' : 'Select'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-12 flex gap-4">
+                <button 
+                  type="button" 
+                  onClick={() => setStep(2)}
+                  className="flex-grow bg-stone-100 hover:bg-stone-200 text-stone-600 py-5 rounded-2xl font-black uppercase tracking-widest transition-all"
+                >
+                  Back
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setStep(4)}
+                  className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all"
+                >
+                  <span>Set Location</span>
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -374,7 +439,7 @@ export default function Register() {
                 <div className="pt-8 flex gap-4">
                   <button 
                     type="button" 
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(3)}
                     className="flex-grow bg-stone-100 hover:bg-stone-200 text-stone-600 py-5 rounded-2xl font-black uppercase tracking-widest transition-all"
                   >
                     Back

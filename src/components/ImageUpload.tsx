@@ -32,9 +32,13 @@ export default function ImageUpload({ onUploadSuccess, maxFiles = 10, currentCou
     try {
       // 1. Fetch auth params from our backend
       const authResponse = await fetch('/api/imagekit/auth');
+      
+      if (!authResponse.ok) {
+        const errorData = await authResponse.json();
+        throw new Error(`Authentication failed: ${errorData.error || authResponse.statusText}`);
+      }
+      
       const authData = await authResponse.json();
-
-      if (!authResponse.ok) throw new Error("Authentication failed");
 
       // 2. Perform upload with auth params
       ik.upload({
@@ -48,16 +52,16 @@ export default function ImageUpload({ onUploadSuccess, maxFiles = 10, currentCou
       }, (err: any, result: any) => {
         setUploading(false);
         if (err) {
-          setError("Upload failed. Please try again.");
-          console.error(err);
+          setError(`Upload failed: ${err.message || 'Check ImageKit settings'}`);
+          console.error("ImageKit Client Upload Error:", err);
         } else {
           onUploadSuccess(result.url);
         }
       });
-    } catch (err) {
+    } catch (err: any) {
       setUploading(false);
-      setError("Upload failed. please try again.");
-      console.error(err);
+      setError(err.message || "Upload failed. Please try again.");
+      console.error("Upload process error:", err);
     }
   };
 
