@@ -48,17 +48,29 @@ async function startServer() {
     }
   });
 
+  // Health check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", env: process.env.NODE_ENV || "development" });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
+    // Production: Serve static files from the dist directory
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    
+    // SPA fallback: Return index.html for all non-API routes
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
