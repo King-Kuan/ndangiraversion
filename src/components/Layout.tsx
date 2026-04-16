@@ -109,7 +109,7 @@ export default function Layout({ children }: LayoutProps) {
             <h4 className="text-white font-semibold mb-6">Contact</h4>
             <ul className="space-y-3 text-sm">
               <li>management@ndangira.rw</li>
-              <li>support@ndangira.rw</li>
+              <li>+250 792 612 139</li>
               <li>Kigali, Rwanda</li>
             </ul>
           </div>

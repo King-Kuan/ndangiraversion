@@ -74,7 +74,7 @@ export default function Pricing() {
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">WhatsApp</span>
-                  <span className="font-bold text-stone-900">+250 78x xxx xxx</span>
+                  <span className="font-bold text-stone-900">+250 792 612 139</span>
                 </div>
               </div>
             </div>

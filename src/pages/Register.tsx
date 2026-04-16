@@ -6,13 +6,14 @@ import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { CITIES, CATEGORIES } from '../constants';
 import GPSPicker from '../components/GPSPicker';
 import ImageUpload from '../components/ImageUpload';
-import { Building2, Mail, Lock, User, Phone, Globe, Info, Map as MapIcon, ChevronRight, Check, X } from 'lucide-react';
+import { Building2, Mail, Lock, User, Phone, Globe, Info, Map as MapIcon, ChevronRight, Check, X, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Register() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -45,6 +46,7 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
     try {
       // 1. Create Auth User
@@ -95,8 +97,11 @@ export default function Register() {
       }
 
       navigate('/dashboard');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'auth/businesses');
+    } catch (error: any) {
+      console.error(error);
+      setError(error.message || "Registration failed. Please check your information.");
+      // Optional: still log to our detailed handler for AI debugging
+      try { handleFirestoreError(error, OperationType.CREATE, 'auth/businesses'); } catch(e) {}
     } finally {
       setLoading(false);
     }
@@ -127,6 +132,12 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleRegister} className="w-full bg-white rounded-[3rem] shadow-2xl p-8 md:p-16 border border-stone-100">
+          {error && (
+            <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold flex items-center gap-3">
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
           {step === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <h2 className="text-3xl font-black text-stone-900 mb-2">Create Account</h2>
@@ -258,7 +269,7 @@ export default function Register() {
                       type="tel" 
                       required 
                       className="bg-transparent border-none focus:ring-0 text-stone-900 w-full"
-                      placeholder="+250 78x xxx xxx"
+                      placeholder="+250 792 612 139"
                       value={formData.businessPhone}
                       onChange={(e) => handleInputChange('businessPhone', e.target.value)}
                     />
