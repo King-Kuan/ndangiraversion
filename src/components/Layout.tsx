@@ -43,6 +43,15 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-4">
+                {(user.email === "fridomiamovement@gmail.com") && (
+                  <Link 
+                    to="/admin" 
+                    className="hidden lg:flex items-center gap-2 px-4 py-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full transition-colors font-bold"
+                  >
+                    <User size={18} />
+                    <span>Admin Panel</span>
+                  </Link>
+                )}
                 <Link 
                   to="/dashboard" 
                   className="hidden md:flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-full transition-colors"

@@ -33,18 +33,26 @@ async function startServer() {
   const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
   app.post("/api/email/welcome", async (req, res) => {
-    if (!resend) return res.status(500).json({ error: "Resend not configured" });
+    if (!resend) {
+      console.warn("Resend not configured, skipping email.");
+      return res.json({ success: true, message: "Resend not configured" });
+    }
     const { email, name } = req.body;
     try {
+      // NOTE: Resend requires a verified domain to send from anything other than 'onboarding@resend.dev'
+      const fromEmail = process.env.NODE_ENV === 'production' && !process.env.RESEND_VERIFIED ? 'onboarding@resend.dev' : 'Ndangira <management@ndangira.rw>';
+      
       await resend.emails.send({
-        from: 'Ndangira <management@ndangira.rw>',
+        from: fromEmail,
         to: email,
         subject: 'Welcome to Ndangira - We received your listing',
         html: `<p>Hello ${name},</p><p>Thank you for registering your business with Ndangira. Our team is currently reviewing your listing and we will notify you once it goes live.</p>`
       });
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to send email" });
+      console.error("Resend Error:", error);
+      // Don't fail the whole registration if email fails
+      res.json({ success: false, error: "Failed to send email" });
     }
   });
 
