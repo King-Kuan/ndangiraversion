@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user with roles (guest, owner, admin)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "photoUrl": { "type": "string", "format": "uri" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Business": {
+      "title": "Business",
+      "description": "Local business listing",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "city": { "type": "string" },
+        "category": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "website": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "active", "rejected"] },
+        "plan": { "type": "string", "enum": ["free", "standard", "featured"] },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "ownerUid": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "city", "category", "lat", "lng", "ownerUid", "status"]
+    },
+    "Ad": {
+      "title": "PalaceAd",
+      "description": "Local advertising campaign",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "targetUrl": { "type": "string" },
+        "placement": { "type": "string", "enum": ["ticker", "inline", "sidebar"] },
+        "city": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "active", "expired"] },
+        "ownerUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "ownerUid", "placement", "status"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Business review from a customer",
+      "type": "object",
+      "properties": {
+        "businessId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "rating": { "type": "number" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["businessId", "userId", "rating", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "System users"
+    },
+    "/businesses/{businessId}": {
+      "schema": "Business",
+      "description": "Business listings"
+    },
+    "/palaceads/{adId}": {
+      "schema": "Ad",
+      "description": "Ad campaigns"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Business reviews"
+    }
+  }
+}

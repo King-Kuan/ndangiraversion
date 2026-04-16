@@ -1,0 +1,6 @@
+{
+  "name": "Ndangira - Rwanda Business Discovery",
+  "description": "Rwanda's first dedicated local business discovery and navigation platform.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}

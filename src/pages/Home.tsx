@@ -1,0 +1,285 @@
+import { useState, useEffect } from 'react';
+import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { BusinessListing } from '../types';
+import { CITIES, CATEGORIES } from '../constants';
+import MapComponent from '../components/MapComponent';
+import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+
+export default function Home() {
+  const [businesses, setBusinesses] = useState<BusinessListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCity, setSelectedCity] = useState('Kigali');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-1.9441, 30.0619]);
+  const [mapZoom, setMapZoom] = useState(13);
+
+  const fetchBusinesses = async () => {
+    setLoading(true);
+    try {
+      let q = query(
+        collection(db, 'businesses'),
+        where('status', '==', 'active'),
+        limit(50)
+      );
+
+      if (selectedCity) {
+        q = query(q, where('city', '==', selectedCity));
+        const cityObj = CITIES.find(c => c.name === selectedCity);
+        if (cityObj) {
+          setMapCenter([cityObj.lat, cityObj.lng]);
+          setMapZoom(13);
+        }
+      }
+
+      if (selectedCategory) {
+        q = query(q, where('category', '==', selectedCategory));
+      }
+
+      const snapshot = await getDocs(q);
+      const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing));
+      setBusinesses(results);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'businesses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBusinesses();
+  }, [selectedCity, selectedCategory]);
+
+  const filteredBusinesses = businesses.filter(b => 
+    b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    b.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col">
+      {/* Hero Search Section */}
+      <section className="bg-emerald-900 text-white pt-16 pb-32 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
+          <div className="absolute top-10 left-10 w-64 h-64 bg-emerald-400 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-emerald-300 rounded-full blur-3xl" />
+        </div>
+        
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-6xl font-black mb-8 leading-tight tracking-tight"
+          >
+            Find what you need in <span className="text-emerald-400">Rwanda.</span>
+          </motion.h1>
+          
+          <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto bg-white/10 backdrop-blur-md p-2 rounded-2xl md:rounded-full border border-white/20 shadow-2xl">
+            <div className="flex-grow flex items-center px-6 gap-3">
+              <Search className="text-emerald-300" size={20} />
+              <input 
+                type="text" 
+                placeholder="Search for restaurants, shops, services..." 
+                className="bg-transparent border-none focus:ring-0 text-white placeholder:text-emerald-200/50 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl md:rounded-full font-bold shadow-lg transition-all active:scale-95">
+              SEARCH
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Filters & Results Container */}
+      <section className="max-w-7xl mx-auto w-full px-4 -mt-16 pb-20 relative z-20">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar Filters */}
+          <aside className="lg:w-72 flex flex-col gap-6">
+            <div className="bg-white p-6 rounded-3xl shadow-xl border border-stone-100">
+              <div className="flex items-center gap-2 font-bold text-stone-900 mb-6">
+                <Filter size={18} className="text-emerald-600" />
+                <span>Filters</span>
+              </div>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="text-xs uppercase font-bold text-stone-400 tracking-widest block mb-3">Select City</label>
+                  <select 
+                    className="w-full bg-stone-50 border-stone-200 rounded-xl text-sm focus:ring-emerald-500 focus:border-emerald-500 px-4 py-3"
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                  >
+                    {CITIES.map(city => (
+                      <option key={city.name} value={city.name}>{city.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs uppercase font-bold text-stone-400 tracking-widest block mb-3">Categories</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={() => setSelectedCategory(null)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${!selectedCategory ? 'bg-emerald-600 text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                    >
+                      All
+                    </button>
+                    {CATEGORIES.map(cat => (
+                      <button 
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Promo */}
+            <div className="bg-emerald-600 rounded-3xl p-6 text-white shadow-xl">
+              <h4 className="font-bold mb-2">Want more views?</h4>
+              <p className="text-xs text-emerald-100 mb-4 opacity-80 leading-relaxed">Featured businesses get 10x more visibility. Starting at 15,000 RWF.</p>
+              <Link to="/pricing" className="text-xs font-black uppercase tracking-widest hover:underline">Learn More ➔</Link>
+            </div>
+          </aside>
+
+          {/* Results Main Area */}
+          <div className="flex-grow flex flex-col gap-6">
+            {/* View Switcher */}
+            <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-lg border border-stone-100">
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => setViewMode('grid')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-50'}`}
+                >
+                  <Grid size={16} />
+                  <span>Grid</span>
+                </button>
+                <button 
+                  onClick={() => setViewMode('map')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === 'map' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-50'}`}
+                >
+                  <MapIcon size={16} />
+                  <span>Map</span>
+                </button>
+              </div>
+              <div className="px-4 text-xs font-medium text-stone-400">
+                Showing {filteredBusinesses.length} businesses in {selectedCity}
+              </div>
+            </div>
+
+            <div className="min-h-[600px]">
+              <AnimatePresence mode="wait">
+                {viewMode === 'grid' ? (
+                  <motion.div 
+                    key="grid"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                  >
+                    {loading ? (
+                      Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="bg-white rounded-3xl h-80 animate-pulse border border-stone-100 shadow-sm" />
+                      ))
+                    ) : filteredBusinesses.length > 0 ? (
+                      filteredBusinesses.map(business => (
+                        <Link 
+                          to={`/business/${business.id}`} 
+                          key={business.id}
+                          className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-stone-100 transition-all group flex flex-col"
+                        >
+                          <div className="relative h-48 bg-stone-200">
+                            {business.photos?.[0] ? (
+                              <img 
+                                src={business.photos[0]} 
+                                alt={business.name} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-stone-400">
+                                <Search size={32} />
+                              </div>
+                            )}
+                            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-sm">
+                              {business.category}
+                            </div>
+                            {business.verified && (
+                              <div className="absolute top-4 right-4 bg-emerald-600 text-white p-1 rounded-full shadow-md">
+                                <Navigation size={12} className="rotate-45" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="p-6 flex flex-col flex-grow">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-700 transition-colors line-clamp-1">{business.name}</h3>
+                              <div className="flex items-center gap-1 text-yellow-500">
+                                <Star size={14} fill="currentColor" />
+                                <span className="text-xs font-bold">{business.rating || 'New'}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-stone-500 mb-4 line-clamp-2 leading-relaxed">{business.description}</p>
+                            
+                            <div className="mt-auto pt-4 border-t border-stone-50 flex items-center justify-between">
+                              <div className="flex items-center gap-1 text-stone-400">
+                                <MapPin size={12} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">{business.city}</span>
+                              </div>
+                              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest group-hover:underline underline-offset-4">View Profile</span>
+                            </div>
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="col-span-full flex flex-col items-center justify-center bg-white rounded-3xl p-20 text-center border border-dashed border-stone-300">
+                        <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center text-stone-300 mb-6">
+                          <Search size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-stone-900 mb-2">No businesses found</h3>
+                        <p className="text-stone-500 text-sm max-w-xs">We couldn't find any businesses matching your search criteria in {selectedCity}.</p>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="map"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full h-[700px] rounded-3xl overflow-hidden shadow-2xl"
+                  >
+                    <MapComponent 
+                      center={mapCenter} 
+                      zoom={mapZoom} 
+                      businesses={filteredBusinesses} 
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Ticker Row */}
+      <div className="bg-stone-900 py-6 border-y border-stone-800">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-8 overflow-hidden whitespace-nowrap">
+          <span className="text-stone-500 text-xs font-black uppercase tracking-widest">Trending Cities:</span>
+          {CITIES.slice(0, 6).map(city => (
+            <button key={city.name} onClick={() => setSelectedCity(city.name)} className="text-stone-300 text-sm font-medium hover:text-emerald-400 transition-colors">#{city.name}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

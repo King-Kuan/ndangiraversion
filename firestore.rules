@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: name, email, role, photoUrl
+    // 
+    // Collection: businesses
+    // Fields: name, description, city, category, address, phone, email, website, lat, lng, status, plan, photos, ownerUid, rating, reviewCount, verified, createdAt
+    //
+    // Collection: palaceads
+    // Fields: title, description, image, targetUrl, placement, city, status, ownerUid, createdAt
+    //
+    // Collection: reviews
+    // Fields: businessId, userId, userName, rating, content, createdAt
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+         (request.auth.token.email == "fridomiamovement@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https?://.*"));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'role']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['user', 'admin'];
+    }
+
+    function isValidBusiness(data) {
+      return data.keys().hasAll(['name', 'city', 'category', 'lat', 'lng', 'ownerUid', 'status']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.city is string &&
+             data.category is string &&
+             data.lat is number &&
+             data.lng is number &&
+             data.ownerUid is string &&
+             data.status in ['pending', 'active', 'rejected'] &&
+             (!('plan' in data) || data.plan in ['free', 'standard', 'featured']);
+    }
+
+    function isValidAd(data) {
+      return data.keys().hasAll(['title', 'ownerUid', 'placement', 'status']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 150 &&
+             data.placement in ['ticker', 'inline', 'sidebar'] &&
+             data.status in ['pending', 'active', 'expired'];
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll(['businessId', 'userId', 'rating', 'content']) &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 1000;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role) || isAdmin();
+    }
+
+    match /businesses/{businessId} {
+      allow read: if resource.data.status == 'active' || (isAuthenticated() && (request.auth.uid == resource.data.ownerUid || isAdmin()));
+      allow create: if isAuthenticated() && isValidBusiness(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
+      allow update: if isAuthenticated() && isValidBusiness(request.resource.data) && (
+        (request.auth.uid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /palaceads/{adId} {
+      allow read: if resource.data.status == 'active' || (isAuthenticated() && (request.auth.uid == resource.data.ownerUid || isAdmin()));
+      allow create: if isAuthenticated() && isValidAd(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
+      allow update: if isAuthenticated() && isValidAd(request.resource.data) && (
+        (request.auth.uid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidReview(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+  }
+}

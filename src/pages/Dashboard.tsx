@@ -1,0 +1,265 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { BusinessListing, PalaceAd } from '../types';
+import { 
+  Building2, 
+  Settings, 
+  BarChart3, 
+  Megaphone, 
+  CreditCard, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle,
+  Plus,
+  ArrowUpRight,
+  TrendingUp,
+  Users,
+  Eye,
+  Star as StarIcon,
+  Navigation,
+  MapPin
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+
+export default function Dashboard() {
+  const [user, loadingAuth] = useAuthState(auth);
+  const navigate = useNavigate();
+  const [business, setBusiness] = useState<BusinessListing | null>(null);
+  const [ads, setAds] = useState<PalaceAd[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!loadingAuth && !user) navigate('/login');
+    
+    const fetchData = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const busQuery = query(collection(db, 'businesses'), where('ownerUid', '==', user.uid));
+        const busSnapshot = await getDocs(busQuery);
+        if (!busSnapshot.empty) {
+          const doc = busSnapshot.docs[0];
+          setBusiness({ id: doc.id, ...doc.data() } as BusinessListing);
+        }
+
+        const adsQuery = query(collection(db, 'palaceads'), where('ownerUid', '==', user.uid));
+        const adsSnapshot = await getDocs(adsQuery);
+        setAds(adsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, 'dashboard/data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user, loadingAuth, navigate]);
+
+  if (loadingAuth || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const statusIcons = {
+    pending: <Clock className="text-yellow-500" size={18} />,
+    active: <CheckCircle className="text-emerald-500" size={18} />,
+    rejected: <AlertCircle className="text-red-500" size={18} />
+  };
+
+  const statusBg = {
+    pending: 'bg-yellow-50 text-yellow-800',
+    active: 'bg-emerald-50 text-emerald-800',
+    rejected: 'bg-red-50 text-red-800'
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-12">
+        <div>
+          <h1 className="text-4xl font-black text-stone-900 tracking-tight mb-2">Owner Dashboard</h1>
+          <p className="text-stone-500 font-medium">Welcome back, {user?.displayName}. Here's how your business is doing.</p>
+        </div>
+        <div className="flex gap-4">
+          <Link to="/pricing" className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all">
+            <ArrowUpRight size={18} />
+            Upgrade Plan
+          </Link>
+          <Link to="/dashboard/settings" className="bg-white border border-stone-200 text-stone-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
+            <Settings size={18} />
+            Manage Listing
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {[
+          { label: 'Total Views', value: '1,284', icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
+          { label: 'Map Clicks', value: '432', icon: Navigation, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+          { label: 'New Reviews', value: '12', icon: StarIcon, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+          { label: 'Ad Clicks', value: '89', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
+        ].map((stat, i) => (
+          <motion.div 
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-stone-100"
+          >
+            <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
+              <stat.icon size={24} />
+            </div>
+            <span className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-1">{stat.label}</span>
+            <span className="text-3xl font-black text-stone-900">{stat.value}</span>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Listing View */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
+            <div className="p-8 md:p-10">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                  <Building2 className="text-emerald-600" />
+                  Your Listing
+                </h2>
+                {business && (
+                  <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${statusBg[business.status]}`}>
+                    {statusIcons[business.status]}
+                    {business.status}
+                  </div>
+                )}
+              </div>
+
+              {business ? (
+                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="w-full md:w-48 h-48 rounded-3xl bg-stone-100 overflow-hidden shrink-0 border border-stone-100">
+                    {business.photos?.[0] ? (
+                      <img src={business.photos[0]} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-stone-300">
+                        <Building2 size={40} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-grow space-y-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-stone-900 mb-1">{business.name}</h3>
+                      <p className="text-stone-500 text-sm line-clamp-2 leading-relaxed">{business.description}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-widest text-stone-400">
+                      <div className="flex items-center gap-1.5"><MapPin size={14} /> {business.city}</div>
+                      <div className="flex items-center gap-1.5"><CreditCard size={14} /> Plan: {business.plan}</div>
+                    </div>
+                    <div className="pt-4 flex gap-4">
+                      <Link to={`/business/${business.id}`} className="text-stone-900 border-b-2 border-stone-900 font-black text-xs uppercase tracking-widest hover:text-emerald-600 hover:border-emerald-600 transition-all">View Public Profile</Link>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-20 bg-stone-50 rounded-3xl border border-dashed border-stone-200">
+                  <p className="text-stone-400 mb-6">You haven't added a business listing yet.</p>
+                  <Link to="/register" className="bg-stone-900 text-white px-8 py-3 rounded-2xl font-bold hover:bg-black">Add Listing Now</Link>
+                </div>
+              )}
+            </div>
+            {business && business.status === 'pending' && (
+              <div className="bg-yellow-50 border-t border-yellow-100 p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                <Clock className="text-yellow-600 shrink-0" size={24} />
+                <div className="flex-grow">
+                  <h4 className="font-bold text-yellow-900 text-sm">Under Review</h4>
+                  <p className="text-xs text-yellow-700 font-medium">An admin is verifying your details. This usually takes 24-48 hours.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* PalaceAds Management */}
+          <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 p-8 md:p-10">
+            <div className="flex items-center justify-between mb-10">
+              <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                <Megaphone className="text-purple-600" />
+                PalaceAds
+              </h2>
+              <button className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-purple-700 shadow-md">
+                <Plus size={18} />
+                New Campaign
+              </button>
+            </div>
+
+            {ads.length > 0 ? (
+              <div className="space-y-4">
+                {ads.map((ad) => (
+                  <div key={ad.id} className="flex items-center justify-between p-5 rounded-3xl bg-stone-50 border border-stone-100">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
+                        <Megaphone size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-stone-900">{ad.title}</h4>
+                        <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{ad.placement} • {ad.status}</p>
+                      </div>
+                    </div>
+                    <button className="text-stone-400 hover:text-stone-900 p-2 rounded-xl transition-colors">
+                      <ArrowUpRight size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-stone-400 italic text-sm">No active ad campaigns yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar Info/Tips */}
+        <aside className="space-y-8">
+          <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+              <TrendingUp size={120} />
+            </div>
+            <h3 className="font-black text-2xl leading-tight mb-4">Scale your<br />business online</h3>
+            <p className="text-xs font-medium text-emerald-100 opacity-80 leading-relaxed mb-8">
+              Ndangira is built for growth. Upgrade to a standard plan to unlock up to 10 photos and higher visibility.
+            </p>
+            <Link to="/pricing" className="inline-block bg-white text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg">Upgrade Now</Link>
+          </div>
+
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-stone-100">
+            <h4 className="font-bold mb-6 flex items-center gap-2">
+              <BarChart3 className="text-stone-400" size={18} />
+              Tips for Growth
+            </h4>
+            <ul className="space-y-6">
+              {[
+                { title: 'Add high-quality photos', text: 'Visuals increase clicks by 40%.' },
+                { title: 'Ask for reviews', text: 'Ratings improve your search rank.' },
+                { title: 'Update your hours', text: 'Avoid customer frustration.' },
+              ].map((tip, i) => (
+                <li key={i} className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 text-[10px] font-bold shrink-0">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-stone-900 text-sm">{tip.title}</h5>
+                    <p className="text-xs text-stone-500 leading-relaxed">{tip.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

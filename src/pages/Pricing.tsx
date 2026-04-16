@@ -1,0 +1,105 @@
+import { PLANS } from '../constants';
+import { Check, Mail, Phone, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+export default function Pricing() {
+  return (
+    <div className="py-20 bg-stone-50">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="text-center max-w-2xl mx-auto mb-20">
+          <h1 className="text-4xl md:text-5xl font-black text-stone-900 tracking-tight mb-6">Simple, local pricing.</h1>
+          <p className="text-stone-500 font-medium">No hidden fees or international credit cards required. Pay via MTN MoMo or Airtel Money to scale your business presence.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+          {PLANS.map((plan) => (
+            <div key={plan.id} className={`bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col ${plan.id === 'featured' ? 'ring-2 ring-emerald-600 relative' : ''}`}>
+              {plan.id === 'featured' && (
+                <div className="absolute top-0 right-10 -translate-y-1/2 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                  Most Popular
+                </div>
+              )}
+              
+              <div className="mb-8">
+                <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">{plan.id}</span>
+                <h3 className="text-2xl font-black text-stone-900 mb-4">{plan.name}</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-emerald-900">{plan.price.split('/')[0]}</span>
+                  {plan.price.includes('/') && <span className="text-stone-400 font-bold text-sm">/{plan.price.split('/')[1]}</span>}
+                </div>
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-grow">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                      <Check size={12} strokeWidth={4} />
+                    </div>
+                    <span className="text-sm text-stone-600 font-medium">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link 
+                to="/register" 
+                className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs text-center transition-all shadow-md active:scale-95 ${
+                  plan.id === 'featured' ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-stone-900 text-white hover:bg-black'
+                }`}
+              >
+                Choose {plan.name}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* Offline Payment Info */}
+        <div className="bg-white rounded-[3rem] shadow-2xl p-8 md:p-16 border border-stone-100 flex flex-col md:flex-row gap-12 items-center">
+          <div className="md:w-1/2 space-y-6">
+            <h2 className="text-3xl font-black text-stone-900 tracking-tight leading-tight">Ready to upgrade? Contact our local team.</h2>
+            <p className="text-stone-500 leading-relaxed font-medium">To keep service fees at 0 RWF, we handle premium plan activations manually. Process is fast and simple.</p>
+            
+            <div className="pt-4 flex flex-col sm:flex-row gap-6">
+              <a href="mailto:management@ndangira.rw" className="flex items-center gap-4 group">
+                <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">Email Us</span>
+                  <span className="font-bold text-stone-900">management@ndangira.rw</span>
+                </div>
+              </a>
+              <div className="flex items-center gap-4 group">
+                <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center text-emerald-600 transition-all shadow-sm">
+                  <Phone size={20} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">WhatsApp</span>
+                  <span className="font-bold text-stone-900">+250 78x xxx xxx</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:w-1/2 bg-stone-50 rounded-[2.5rem] p-8 space-y-8">
+            <h4 className="font-bold text-stone-900">How it works:</h4>
+            <div className="space-y-6">
+              {[
+                { step: 1, text: 'Select a plan and contact management.' },
+                { step: 2, text: 'Receive payment instructions (MTN MoMo/Airtel Money).' },
+                { step: 3, text: 'Send payment and screenshot of confirmation.' },
+                { step: 4, text: 'Admin activates your premium plan within 1 hour.' },
+              ].map((item) => (
+                <div key={item.step} className="flex gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-emerald-600 font-black text-sm shrink-0">
+                    {item.step}
+                  </div>
+                  <p className="text-sm text-stone-600 font-medium pt-1">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
