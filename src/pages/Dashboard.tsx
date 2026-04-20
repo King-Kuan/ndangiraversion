@@ -14,6 +14,7 @@ import {
   CheckCircle, 
   Clock, 
   AlertCircle,
+  XCircle,
   Plus,
   ArrowUpRight,
   TrendingUp,
@@ -74,11 +75,15 @@ export default function Dashboard() {
     setIsUploading(true);
     setAdError(null);
     try {
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
       const adData = {
         ...newAd,
         ownerUid: user.uid,
         city: business?.city || 'Kigali', // Fallback to Kigali if no business
         status: 'pending',
+        expiryDate: thirtyDaysFromNow,
         createdAt: serverTimestamp()
       };
       const docRef = await addDoc(collection(db, 'palaceads'), adData);
@@ -127,13 +132,15 @@ export default function Dashboard() {
   const statusIcons = {
     pending: <Clock className="text-yellow-500" size={18} />,
     active: <CheckCircle className="text-emerald-500" size={18} />,
-    rejected: <AlertCircle className="text-red-500" size={18} />
+    rejected: <AlertCircle className="text-red-500" size={18} />,
+    expired: <XCircle className="text-stone-500" size={18} />
   };
 
   const statusBg = {
     pending: 'bg-yellow-50 text-yellow-800',
     active: 'bg-emerald-50 text-emerald-800',
-    rejected: 'bg-red-50 text-red-800'
+    rejected: 'bg-red-50 text-red-800',
+    expired: 'bg-stone-50 text-stone-800'
   };
 
   return (
@@ -289,8 +296,19 @@ export default function Dashboard() {
                         <Megaphone size={20} />
                       </div>
                       <div>
-                        <h4 className="font-bold text-stone-900">{ad.title}</h4>
-                        <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{ad.placement} • {ad.status}</p>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className="font-bold text-stone-900 leading-none">{ad.title}</h4>
+                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${statusBg[ad.status]}`}>
+                            {ad.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{ad.placement}</p>
+                          <span className="w-1 h-1 bg-stone-200 rounded-full" />
+                          <p className="text-[10px] font-bold text-stone-500">
+                            {ad.expiryDate?.seconds ? `Exp: ${new Date(ad.expiryDate.seconds * 1000).toLocaleDateString()}` : 'One month duration'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     <button className="text-stone-400 hover:text-stone-900 p-2 rounded-xl transition-colors">

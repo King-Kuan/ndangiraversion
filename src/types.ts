@@ -49,6 +49,7 @@ export interface PalaceAd {
   city: string;
   status: AdStatus;
   ownerUid: string;
+  expiryDate?: any;
   createdAt: any;
 }
 

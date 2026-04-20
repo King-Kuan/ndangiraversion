@@ -71,7 +71,8 @@ service cloud.firestore {
       return data.keys().hasAll(['title', 'ownerUid', 'placement', 'status']) &&
              data.title is string && data.title.size() > 0 && data.title.size() < 150 &&
              data.placement in ['ribbon', 'popup', 'redirect'] &&
-             data.status in ['pending', 'active', 'expired'];
+             data.status in ['pending', 'active', 'expired'] &&
+             (!('expiryDate' in data) || data.expiryDate is timestamp);
     }
 
     function isValidReview(data) {
