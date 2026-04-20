@@ -343,6 +343,10 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {filteredAds.map(ad => {
                 const owner = allUsers.find(u => u.uid === ad.ownerUid);
+                const ownerBusiness = allBusinesses.find(b => b.ownerUid === ad.ownerUid);
+                const displayBusinessName = ad.businessName || ownerBusiness?.name || 'Independent';
+                const displayBusinessPhone = ad.businessPhone || ownerBusiness?.phone || '';
+
                 return (
                   <div key={ad.id} className="bg-white p-8 rounded-[3rem] shadow-sm border border-stone-100 flex flex-col">
                     <div className="flex gap-6 items-start mb-6">
@@ -378,10 +382,10 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Business Context</p>
-                          <p className="text-xs font-bold text-stone-900">{ad.businessName || 'Independent'}</p>
-                          {ad.businessPhone && (
+                          <p className="text-xs font-bold text-stone-900">{displayBusinessName}</p>
+                          {displayBusinessPhone && (
                             <p className="text-[10px] text-stone-500 font-medium flex items-center gap-1 mt-0.5">
-                              <Phone size={10} /> {ad.businessPhone}
+                              <Phone size={10} /> {displayBusinessPhone}
                             </p>
                           )}
                         </div>

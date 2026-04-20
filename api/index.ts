@@ -46,13 +46,14 @@ app.post("/api/email/welcome", async (req, res) => {
     // NOTE: Resend requires a verified domain to send from anything other than 'onboarding@resend.dev'
     // If the user hasn't set RESEND_VERIFIED=true, we force onboarding@resend.dev
     const isVerified = process.env.RESEND_VERIFIED === 'true';
-    const fromEmail = isVerified ? 'Ndangira <management@ndangira.rw>' : 'Ndangira <onboarding@resend.dev>';
+    const fromEmail = isVerified ? 'Ndangira <noreply@getpawa.co.rw>' : 'Ndangira <onboarding@resend.dev>';
     
     console.log(`Attempting to send email from: ${fromEmail} to: ${email}`);
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
+      replyTo: 'management@ndangira.rw',
       subject: 'Ndangira - Registration Received',
       html: `
         <div style="font-family: sans-serif; color: #1c1917;">
