@@ -64,7 +64,11 @@ service cloud.firestore {
              data.lng is number &&
              data.ownerUid is string &&
              data.status in ['pending', 'active', 'rejected'] &&
-             (!('plan' in data) || data.plan in ['free', 'standard', 'featured']);
+             (!('plan' in data) || data.plan in ['free', 'standard', 'featured']) &&
+             (!('views' in data) || data.views is number) &&
+             (!('mapClicks' in data) || data.mapClicks is number) &&
+             (!('reviewCount' in data) || data.reviewCount is number) &&
+             (!('rating' in data) || data.rating is number);
     }
 
     function isValidAd(data) {
@@ -78,9 +82,12 @@ service cloud.firestore {
     }
 
     function isValidReview(data) {
-      return data.keys().hasAll(['businessId', 'userId', 'rating', 'content']) &&
-             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
-             data.content is string && data.content.size() > 0 && data.content.size() < 1000;
+      return data.keys().hasAll(['businessId', 'userId', 'rating', 'content', 'userName', 'createdAt']) &&
+             data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+             data.content is string && data.content.size() <= 1000 &&
+             data.userName is string && data.userName.size() < 100 &&
+             data.businessId is string &&
+             data.userId is string;
     }
 
     // ===============================================================
@@ -96,9 +103,11 @@ service cloud.firestore {
     match /businesses/{businessId} {
       allow read: if resource.data.status == 'active' || (isAuthenticated() && (request.auth.uid == resource.data.ownerUid || isAdmin()));
       allow create: if isAuthenticated() && isValidBusiness(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
-      allow update: if isAuthenticated() && isValidBusiness(request.resource.data) && (
-        (request.auth.uid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
-        isAdmin()
+      allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'mapClicks', 'reviewCount', 'rating'])) || (
+        isAuthenticated() && isValidBusiness(request.resource.data) && (
+          (request.auth.uid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
+          isAdmin()
+        )
       );
       allow delete: if isAdmin();
     }
@@ -116,7 +125,8 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if isAuthenticated() && isValidReview(request.resource.data) && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update: if isAuthenticated() && isValidReview(request.resource.data) && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
   }
 }

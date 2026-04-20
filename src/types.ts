@@ -35,6 +35,7 @@ export interface BusinessListing {
   mapClicks: number;
   views: number;
   verified: boolean;
+  approvalEmailSent?: boolean;
   expiryDate?: any;
   createdAt: any;
 }

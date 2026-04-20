@@ -85,6 +85,46 @@ app.post("/api/email/welcome", async (req, res) => {
   }
 });
 
+app.post("/api/email/approved", async (req, res) => {
+  if (!resend) {
+    return res.json({ success: true, message: "Resend not configured" });
+  }
+  const { email, businessName } = req.body;
+  try {
+    const isVerified = process.env.RESEND_VERIFIED === 'true';
+    const fromEmail = isVerified ? 'Ndangira <noreply@getpawa.co.rw>' : 'Ndangira <onboarding@resend.dev>';
+    
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: email,
+      replyTo: 'management@ndangira.rw',
+      subject: `Ndangira - ${businessName} is now LIVE!`,
+      html: `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #059669;">Your Listing is Active</h1>
+          <p>Great news!</p>
+          <p>Your business listing <strong>${businessName}</strong> has been approved and is now live on <strong>Ndangira</strong>.</p>
+          <p>Users can now discover your services, see your contact details, and find you on our interactive map.</p>
+          <p>Thank you for being part of Africa's premier business network.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 40px 0;" />
+          <p style="font-size: 12px; color: #78716c;">The Palace, Inc. - The Palace Tech House<br/>Gisenyi, Rubavu, Rwanda</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      console.error("Resend Approval Email Error:", error);
+      return res.status(400).json({ success: false, error: error.message });
+    }
+
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error("Resend Approval Catch Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV || "development" });

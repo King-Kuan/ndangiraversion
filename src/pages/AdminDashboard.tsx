@@ -87,7 +87,24 @@ export default function AdminDashboard() {
       await updateDoc(docRef, { status });
       
       if (collectionName === 'businesses') {
-        setAllBusinesses(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+        const business = allBusinesses.find(b => b.id === id);
+        if (status === 'active' && business && !business.approvalEmailSent) {
+          // Send approval email
+          try {
+            await fetch('/api/email/approved', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: business.email,
+                businessName: business.name
+              })
+            });
+            await updateDoc(docRef, { approvalEmailSent: true });
+          } catch (e) {
+            console.error("Failed to send approval email", e);
+          }
+        }
+        setAllBusinesses(prev => prev.map(b => b.id === id ? { ...b, status, approvalEmailSent: status === 'active' ? true : b.approvalEmailSent } : b));
       } else {
         setAllAds(prev => prev.map(a => a.id === id ? { ...a, status } : a));
       }
@@ -288,7 +305,15 @@ export default function AdminDashboard() {
                         Approve
                       </button>
                     )}
-                    {business.status === 'active' && (
+                    {business.status === 'active' && !business.approvalEmailSent && (
+                      <button 
+                        onClick={() => handleAction('businesses', business.id, 'active')}
+                        className="flex-grow bg-emerald-50 text-emerald-600 h-12 rounded-xl font-bold text-xs hover:bg-emerald-100 transition-colors"
+                      >
+                        Send Approval Email
+                      </button>
+                    )}
+                    {business.status === 'active' && business.approvalEmailSent && (
                       <button 
                         className="flex-grow bg-stone-100 text-stone-400 h-12 rounded-xl font-bold text-xs cursor-default"
                       >
