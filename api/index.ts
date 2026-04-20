@@ -44,24 +44,42 @@ app.post("/api/email/welcome", async (req, res) => {
   const { email, name } = req.body;
   try {
     // NOTE: Resend requires a verified domain to send from anything other than 'onboarding@resend.dev'
-    const fromEmail = process.env.NODE_ENV === 'production' && !process.env.RESEND_VERIFIED ? 'onboarding@resend.dev' : 'Ndangira <management@ndangira.rw>';
+    // If the user hasn't set RESEND_VERIFIED=true, we force onboarding@resend.dev
+    const isVerified = process.env.RESEND_VERIFIED === 'true';
+    const fromEmail = isVerified ? 'Ndangira <management@ndangira.rw>' : 'Ndangira <onboarding@resend.dev>';
     
-    const data = await resend.emails.send({
+    console.log(`Attempting to send email from: ${fromEmail} to: ${email}`);
+
+    const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: 'Welcome to Ndangira - We received your listing',
-      html: `<p>Hello ${name},</p><p>Thank you for registering your business with Ndangira. Our team is currently reviewing your listing and we will notify you once it goes live.</p>`
+      subject: 'Ndangira - Registration Received',
+      html: `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #059669;">Welcome to Ndangira</h1>
+          <p>Hello ${name},</p>
+          <p>Thank you for choosing <strong>Ndangira</strong> by The Palace, Inc. We have received your business registration request.</p>
+          <p>Our administration team is currently reviewing your details and verifying payment where applicable. You will receive another notification once your listing is active.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 40px 0;" />
+          <p style="font-size: 12px; color: #78716c;">The Palace, Inc. - The Palace Tech House<br/>Gisenyi, Rubavu, Rwanda</p>
+        </div>
+      `
     });
+
+    if (error) {
+      console.error("Resend API Error:", error);
+      return res.status(400).json({ success: false, error: error.message, details: error });
+    }
+
     console.log("Resend Success:", data);
     res.json({ success: true, data });
   } catch (error: any) {
-    console.error("Resend Error Detail:", error);
-    // Return detailed error in development to help user
+    console.error("Resend Catch Error:", error);
     res.status(500).json({ 
       success: false, 
-      error: "Failed to send email", 
-      details: error.message,
-      code: error.code || error.statusCode
+      error: "Critical failure in email service", 
+      details: error.message
     });
   }
 });

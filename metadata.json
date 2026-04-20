@@ -1,6 +1,6 @@
 {
-  "name": "Ndangira - Rwanda Business Discovery",
-  "description": "Rwanda's first dedicated local business discovery and navigation platform.",
+  "name": "Ndangira",
+  "description": "Rwanda's dedicated local business discovery platform by The Palace, Inc.",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": []
 }

@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimest
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { BusinessListing, PalaceAd, AdPlacement, BusinessPlan } from '../types';
+import { AD_PRICES, CITIES } from '../constants';
 import { 
   Building2, 
   Settings, 
@@ -30,9 +31,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Dashboard() {
   const [user, loadingAuth] = useAuthState(auth);
   const navigate = useNavigate();
-  const [business, setBusiness] = useState<BusinessListing | null>(null);
+  const [businesses, setBusinesses] = useState<BusinessListing[]>([]);
+  const [activeBusinessIndex, setActiveBusinessIndex] = useState(0);
   const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const business = businesses[activeBusinessIndex] || null;
 
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [newAd, setNewAd] = useState({
@@ -50,10 +54,8 @@ export default function Dashboard() {
     try {
       const busQuery = query(collection(db, 'businesses'), where('ownerUid', '==', user.uid));
       const busSnapshot = await getDocs(busQuery);
-      if (!busSnapshot.empty) {
-        const doc = busSnapshot.docs[0];
-        setBusiness({ id: doc.id, ...doc.data() } as BusinessListing);
-      }
+      const fetchedBusinesses = busSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing));
+      setBusinesses(fetchedBusinesses);
 
       const adsQuery = query(collection(db, 'palaceads'), where('ownerUid', '==', user.uid));
       const adsSnapshot = await getDocs(adsQuery);
@@ -67,18 +69,22 @@ export default function Dashboard() {
 
   const handleAdCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !business) return;
+    if (!user) return;
     setIsUploading(true);
     try {
       const adData = {
         ...newAd,
         ownerUid: user.uid,
-        city: business.city,
+        city: business?.city || 'Kigali', // Fallback to Kigali if no business
         status: 'pending',
         createdAt: serverTimestamp()
       };
       const docRef = await addDoc(collection(db, 'palaceads'), adData);
-      setAds(prev => [{ id: docRef.id, ...adData, createdAt: { seconds: Date.now()/1000 } } as PalaceAd, ...prev]);
+      setAds(prev => [{ 
+        id: docRef.id, 
+        ...adData, 
+        createdAt: { seconds: Date.now()/1000 } 
+      } as unknown as PalaceAd, ...prev]);
       setIsAdModalOpen(false);
       setNewAd({ title: '', description: '', image: '', targetUrl: '', placement: 'ribbon' });
       alert("Campaign submitted for approval! Our team will review your request shortly.");
@@ -94,7 +100,7 @@ export default function Dashboard() {
     try {
       const docRef = doc(db, 'businesses', business.id);
       await updateDoc(docRef, { pendingPlanUpdate: plan });
-      setBusiness(prev => prev ? { ...prev, pendingPlanUpdate: plan } : null);
+      setBusinesses(prev => prev.map(b => b.id === business.id ? { ...b, pendingPlanUpdate: plan } : b));
       alert("Upgrade request submitted! An admin will review your payment and approve the upgrade shortly.");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `businesses/${business.id}`);
@@ -132,6 +138,20 @@ export default function Dashboard() {
         <div>
           <h1 className="text-4xl font-black text-stone-900 tracking-tight mb-2">Owner Dashboard</h1>
           <p className="text-stone-500 font-medium">Welcome back, {user?.displayName}. Here's how your business is doing.</p>
+          
+          {businesses.length > 1 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {businesses.map((b, idx) => (
+                <button
+                  key={b.id}
+                  onClick={() => setActiveBusinessIndex(idx)}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeBusinessIndex === idx ? 'bg-stone-900 text-white' : 'bg-white border border-stone-100 text-stone-400'}`}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex gap-4">
           <Link to="/pricing" className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all">
@@ -378,6 +398,7 @@ export default function Dashboard() {
                         className={`p-4 rounded-2xl border-2 transition-all text-left ${newAd.placement === t.id ? 'border-purple-600 bg-purple-50' : 'border-stone-100 hover:border-stone-200'}`}
                       >
                         <p className={`text-xs font-black uppercase tracking-wide ${newAd.placement === t.id ? 'text-purple-700' : 'text-stone-900'}`}>{t.label}</p>
+                        <p className={`text-[10px] font-bold ${newAd.placement === t.id ? 'text-purple-600' : 'text-emerald-600'}`}>{AD_PRICES[t.id as keyof typeof AD_PRICES]}</p>
                         <p className="text-[10px] text-stone-400 font-medium">{t.desc}</p>
                       </button>
                     ))}

@@ -137,3 +137,66 @@ export const PalacePopup = () => {
     </AnimatePresence>
   );
 };
+
+export const RedirectInterstitial = () => {
+  const [ad, setAd] = useState<PalaceAd | null>(null);
+  const [show, setShow] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    const fetchRedirect = async () => {
+      // Very low chance to not be too intrusive
+      if (Math.random() > 0.05) return;
+
+      try {
+        const q = query(
+          collection(db, 'palaceads'), 
+          where('placement', '==', 'redirect'),
+          where('status', '==', 'active'),
+          limit(1)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const doc = snapshot.docs[0];
+          setAd({ id: doc.id, ...doc.data() } as PalaceAd);
+          setShow(true);
+        }
+      } catch (error) {
+        console.error('Redirect fetch failed', error);
+      }
+    };
+    fetchRedirect();
+  }, []);
+
+  useEffect(() => {
+    if (show && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (show && countdown === 0 && ad?.targetUrl) {
+      window.open(ad.targetUrl, '_blank');
+      setShow(false);
+    }
+  }, [show, countdown, ad]);
+
+  if (!show || !ad) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-stone-900 flex items-center justify-center p-8">
+      <div className="max-w-md text-center">
+        <div className="w-20 h-20 bg-purple-600 rounded-3xl flex items-center justify-center text-white mx-auto mb-8 animate-bounce">
+          <ExternalLink size={40} />
+        </div>
+        <h2 className="text-3xl font-black text-white mb-4 uppercase tracking-tight">Partner Spotlight</h2>
+        <p className="text-stone-400 font-bold mb-8 italic">"{ad.title}"</p>
+        <div className="text-5xl font-black text-emerald-400 mb-8">{countdown}</div>
+        <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">You are being redirected to our partner...</p>
+        <button 
+          onClick={() => setShow(false)}
+          className="mt-12 text-stone-600 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]"
+        >
+          Cancel & Stay on Ndangira
+        </button>
+      </div>
+    </div>
+  );
+};

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { CITIES, CATEGORIES, PLANS } from '../constants';
 import GPSPicker from '../components/GPSPicker';
 import ImageUpload from '../components/ImageUpload';
@@ -10,6 +11,7 @@ import { Building2, Mail, Lock, User, Phone, Globe, Info, Map as MapIcon, Chevro
 import { motion } from 'framer-motion';
 
 export default function Register() {
+  const [user, loadingAuth] = useAuthState(auth);
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,17 @@ export default function Register() {
     photos: [] as string[]
   });
 
+  useEffect(() => {
+    if (!loadingAuth && user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.displayName || '',
+        email: user.email || ''
+      }));
+      setStep(2); // Skip account creation if already logged in
+    }
+  }, [user, loadingAuth]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
@@ -50,25 +63,28 @@ export default function Register() {
     setError(null);
     
     try {
-      // 1. Create Auth User
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-      
-      await updateProfile(user, { displayName: formData.name });
+      let currentUser = user;
 
-      // 2. Create User Profile in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        name: formData.name,
-        email: formData.email,
-        role: 'user',
-        createdAt: serverTimestamp()
-      });
+      // 1. Create Auth User if not logged in
+      if (!currentUser) {
+        const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        currentUser = userCredential.user;
+        await updateProfile(currentUser, { displayName: formData.name });
+
+        // 2. Create User Profile in Firestore
+        await setDoc(doc(db, 'users', currentUser.uid), {
+          name: formData.name,
+          email: formData.email,
+          role: 'user',
+          createdAt: serverTimestamp()
+        });
+      }
 
       // 3. Create Business Listing
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-      await setDoc(doc(db, 'businesses', `${user.uid}_primary`), {
+      const businessData = {
         name: formData.businessName,
         description: formData.businessDescription,
         city: formData.businessCity,
@@ -82,7 +98,7 @@ export default function Register() {
         status: 'pending',
         plan: formData.plan,
         photos: formData.photos,
-        ownerUid: user.uid,
+        ownerUid: currentUser.uid,
         rating: 0,
         reviewCount: 0,
         mapClicks: 0,
@@ -90,7 +106,9 @@ export default function Register() {
         verified: false,
         expiryDate: thirtyDaysFromNow,
         createdAt: serverTimestamp()
-      });
+      };
+
+      await addDoc(collection(db, 'businesses'), businessData);
 
       // 4. Send Welcome Email via our API
       try {

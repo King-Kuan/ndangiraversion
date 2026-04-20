@@ -36,3 +36,9 @@ export const PLANS = [
   { id: 'standard', name: 'Standard', price: '15,000/month', features: ['Up to 10 photos', 'Higher in search', 'Verified badge', 'Priority support'] },
   { id: 'featured', name: 'Featured', price: '45,000/month', features: ['Everything in Standard', 'Top of search results', 'Homepage spotlight', 'Social media feature'] }
 ];
+
+export const AD_PRICES = {
+  ribbon: '10,000 RWF',
+  popup: '15,000 RWF',
+  redirect: '25,000 RWF'
+};
