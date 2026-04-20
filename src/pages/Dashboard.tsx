@@ -47,6 +47,7 @@ export default function Dashboard() {
     placement: 'ribbon' as AdPlacement
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [adError, setAdError] = useState<string | null>(null);
 
   const fetchData = async () => {
     if (!user) return;
@@ -71,6 +72,7 @@ export default function Dashboard() {
     e.preventDefault();
     if (!user) return;
     setIsUploading(true);
+    setAdError(null);
     try {
       const adData = {
         ...newAd,
@@ -88,8 +90,10 @@ export default function Dashboard() {
       setIsAdModalOpen(false);
       setNewAd({ title: '', description: '', image: '', targetUrl: '', placement: 'ribbon' });
       alert("Campaign submitted for approval! Our team will review your request shortly.");
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'palaceads');
+    } catch (error: any) {
+      console.error(error);
+      setAdError(error.message || "Failed to submit campaign. Please try again.");
+      try { handleFirestoreError(error, OperationType.CREATE, 'palaceads'); } catch(e) {}
     } finally {
       setIsUploading(false);
     }
@@ -383,6 +387,12 @@ export default function Dashboard() {
               </div>
 
               <form onSubmit={handleAdCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                {adError && (
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex items-center gap-3">
+                    <AlertCircle size={16} />
+                    <span>{adError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Campaign Type</label>
                   <div className="grid grid-cols-3 gap-3">

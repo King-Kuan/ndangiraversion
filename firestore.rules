@@ -70,7 +70,7 @@ service cloud.firestore {
     function isValidAd(data) {
       return data.keys().hasAll(['title', 'ownerUid', 'placement', 'status']) &&
              data.title is string && data.title.size() > 0 && data.title.size() < 150 &&
-             data.placement in ['ticker', 'inline', 'sidebar'] &&
+             data.placement in ['ribbon', 'popup', 'redirect'] &&
              data.status in ['pending', 'active', 'expired'];
     }
 
