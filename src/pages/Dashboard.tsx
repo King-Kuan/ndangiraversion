@@ -81,6 +81,8 @@ export default function Dashboard() {
       const adData = {
         ...newAd,
         ownerUid: user.uid,
+        businessName: business?.name || 'Independent',
+        businessPhone: business?.phone || '',
         city: business?.city || 'Kigali', // Fallback to Kigali if no business
         status: 'pending',
         expiryDate: thirtyDaysFromNow,

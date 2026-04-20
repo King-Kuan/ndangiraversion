@@ -49,6 +49,8 @@ export interface PalaceAd {
   city: string;
   status: AdStatus;
   ownerUid: string;
+  businessName?: string;
+  businessPhone?: string;
   expiryDate?: any;
   createdAt: any;
 }

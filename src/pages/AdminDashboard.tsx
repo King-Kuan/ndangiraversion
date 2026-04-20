@@ -369,17 +369,34 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="bg-stone-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Submitter</p>
-                        <p className="text-xs font-bold text-stone-900">{owner?.name || 'Unknown'}</p>
-                        <p className="text-[10px] text-stone-500 font-medium">{owner?.email || ad.ownerUid}</p>
+                    <div className="bg-stone-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Submitter</p>
+                          <p className="text-xs font-bold text-stone-900">{owner?.name || 'Unknown'}</p>
+                          <p className="text-[10px] text-stone-500 font-medium">{owner?.email || ad.ownerUid}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Business Context</p>
+                          <p className="text-xs font-bold text-stone-900">{ad.businessName || 'Independent'}</p>
+                          {ad.businessPhone && (
+                            <p className="text-[10px] text-stone-500 font-medium flex items-center gap-1 mt-0.5">
+                              <Phone size={10} /> {ad.businessPhone}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Expiry Date</p>
-                        <p className="text-xs font-bold text-stone-900">
-                          {ad.expiryDate?.seconds ? new Date(ad.expiryDate.seconds * 1000).toLocaleDateString() : '30 Days From Approval'}
-                        </p>
+                      <div className="text-right flex flex-col justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Campaign Region</p>
+                          <p className="text-xs font-bold text-stone-900">{ad.city}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Expiry Date</p>
+                          <p className="text-xs font-bold text-stone-900">
+                            {ad.expiryDate?.seconds ? new Date(ad.expiryDate.seconds * 1000).toLocaleDateString() : '30 Days From Approval'}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
