@@ -125,6 +125,35 @@ app.post("/api/email/approved", async (req, res) => {
   }
 });
 
+app.post("/api/email/bulk", async (req, res) => {
+  if (!resend) {
+    return res.json({ success: true, message: "Resend not configured" });
+  }
+  const { email, subject, html } = req.body;
+  try {
+    const isVerified = process.env.RESEND_VERIFIED === 'true';
+    const fromEmail = isVerified ? 'Ndangira <noreply@getpawa.co.rw>' : 'Ndangira <onboarding@resend.dev>';
+    
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: email,
+      replyTo: 'management@ndangira.rw',
+      subject: subject,
+      html: html
+    });
+
+    if (error) {
+      console.error("Resend Bulk Email Error:", error);
+      return res.status(400).json({ success: false, error: error.message });
+    }
+
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error("Resend Bulk Catch Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV || "development" });

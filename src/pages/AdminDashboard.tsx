@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, getDocs, updateDoc, doc, where, limit } from 'firebase/firestore';
+import { collection, query, getDocs, updateDoc, doc, where, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { BusinessListing, PalaceAd, UserProfile } from '../types';
@@ -32,8 +32,116 @@ export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'listings' | 'ads' | 'users'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'ads' | 'users' | 'messages'>('listings');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'rejected' | 'expired'>('all');
+
+  // Message Center States
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [recipients, setRecipients] = useState<string[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{success: number, total: number} | null>(null);
+
+  const presets = [
+    {
+      id: 'update',
+      title: 'Platform Discovery',
+      subject: 'Exploring Ndangira: What\'s New',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #059669;">New Discoveries Await</h1>
+          <p>Hello ${name},</p>
+          <p>We've recently added several new high-quality business listings to Ndangira. From local artisans to tech services, discovery is just a click away.</p>
+          <p>Our platform is growing every day, helping connect you with Rwanda's most vibrant services.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+        </div>
+      `
+    },
+    {
+      id: 'spotlight',
+      title: 'Featured Business Spotlight',
+      subject: 'Featured Services on Ndangira',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #8b5cf6;">Business Spotlight</h1>
+          <p>Hello ${name},</p>
+          <p>Check out our featured listings of the week! These businesses have been verified and highly rated by the community.</p>
+          <p>Support local growth by discovering excellence in your category.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+        </div>
+      `
+    }
+  ];
+
+  const handleBulkSend = async () => {
+    if (!selectedTemplate || recipients.length === 0) return;
+    setIsSending(true);
+    let successCount = 0;
+    const template = presets.find(p => p.id === selectedTemplate);
+    if (!template) return;
+
+    const todayDate = new Date().toISOString().split('T')[0];
+    const yesterdayDate = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    try {
+      for (const email of recipients) {
+        // 1. Check daily limit (20 per day per type)
+        const todayLogs = await getDocs(query(
+          collection(db, 'email_logs'), 
+          where('templateId', '==', selectedTemplate), 
+          where('date', '==', todayDate)
+        ));
+        
+        if (todayLogs.size >= 20) {
+          alert(`Daily limit of 20 emails for ${template.title} reached.`);
+          break;
+        }
+
+        // 2. Check if sent yesterday
+        const yesterdayLogs = await getDocs(query(
+          collection(db, 'email_logs'), 
+          where('templateId', '==', selectedTemplate), 
+          where('date', '==', yesterdayDate),
+          where('email', '==', email)
+        ));
+
+        if (!yesterdayLogs.empty) {
+          console.warn(`Skipping ${email}: Sent yesterday.`);
+          continue;
+        }
+
+        const userProfile = allUsers.find(u => u.email === email);
+        const userName = userProfile?.name || 'Valued User';
+
+        // 3. Send via API
+        const response = await fetch('/api/email/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            subject: template.subject,
+            html: template.html(userName)
+          })
+        });
+
+        if (response.ok) {
+          successCount++;
+          // 4. Log to Firestore
+          await addDoc(collection(db, 'email_logs'), {
+            templateId: selectedTemplate,
+            email,
+            date: todayDate,
+            sentAt: serverTimestamp()
+          });
+        }
+      }
+      setEmailStatus({ success: successCount, total: recipients.length });
+    } catch (error) {
+      console.error("Bulk send failed", error);
+    } finally {
+      setIsSending(false);
+      setRecipients([]);
+    }
+  };
 
   useEffect(() => {
     if (!loadingAuth && !user) navigate('/login');
@@ -205,6 +313,12 @@ export default function AdminDashboard() {
             className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'users' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
           >
             User Directory
+          </button>
+          <button 
+            onClick={() => setActiveTab('messages')}
+            className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
+          >
+            Message Center
           </button>
         </div>
 
@@ -450,6 +564,98 @@ export default function AdminDashboard() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        ) : activeTab === 'messages' ? (
+          <div className="space-y-8">
+            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-stone-100">
+              <h2 className="text-2xl font-black text-stone-900 mb-6 flex items-center gap-3 italic uppercase italic text-emerald-600">
+                <Mail size={28} /> Campaign Builder
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {presets.map(p => (
+                  <button 
+                    key={p.id}
+                    onClick={() => setSelectedTemplate(p.id)}
+                    className={`text-left p-6 rounded-[2.5rem] border-2 transition-all ${selectedTemplate === p.id ? 'border-emerald-500 bg-emerald-50/30' : 'border-stone-100 bg-stone-50 hover:border-stone-200'}`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`p-2 rounded-xl ${selectedTemplate === p.id ? 'bg-emerald-500 text-white' : 'bg-stone-200 text-stone-500'}`}>
+                        <FileText size={20} />
+                      </div>
+                      <h4 className="font-bold text-stone-800">{p.title}</h4>
+                    </div>
+                    <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest mb-1 italic">Subject</p>
+                    <p className="text-xs text-stone-600 font-medium mb-4 line-clamp-1">{p.subject}</p>
+                    <div className="bg-white/50 p-4 rounded-xl text-[10px] text-stone-500 italic line-clamp-3 leading-relaxed">
+                      {p.html('Recipient')}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-stone-400 mb-4 tracking-[0.2em] italic">Assign Recipients (Select from Directory)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {allUsers.filter(u => u.email !== user?.email).slice(0, 50).map(u => (
+                      <button 
+                        key={u.uid}
+                        onClick={() => setRecipients(prev => prev.includes(u.email) ? prev.filter(e => e !== u.email) : [...prev, u.email])}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${recipients.includes(u.email) ? 'bg-emerald-600 text-white shadow-lg' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+                      >
+                        {u.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {recipients.length > 0 && (
+                  <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                        <Users size={24} />
+                      </div>
+                      <div>
+                        <p className="font-black text-stone-900 italic uppercase italic text-emerald-700">Target Audience</p>
+                        <p className="text-xs font-bold text-stone-600">{recipients.length} Users Selected</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleBulkSend}
+                      disabled={isSending || recipients.length === 0}
+                      className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all ${isSending ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-stone-900 text-white hover:bg-black shadow-xl'}`}
+                    >
+                      {isSending ? 'Transmitting...' : `Launch Transmission (${recipients.length})`}
+                    </button>
+                  </div>
+                )}
+
+                {emailStatus && (
+                  <div className="p-4 rounded-2xl bg-stone-900 text-white text-center">
+                    <p className="text-xs font-bold">Execution Complete: {emailStatus.success} of {emailStatus.total} signals sent successfully.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-stone-100">
+               <h3 className="text-sm font-black text-stone-900 mb-6 uppercase tracking-widest italic">Operational Thresholds</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-stone-50 p-4 rounded-2xl">
+                    <p className="text-xs font-bold text-stone-800 mb-2">Throttling Rules</p>
+                    <ul className="text-[10px] text-stone-500 space-y-1 font-medium list-disc ml-4">
+                      <li>Max 20 transmissions per type per solar day.</li>
+                      <li>Sequential day bypass: Cannot send the same type to the same recipient 2 days in a row.</li>
+                    </ul>
+                  </div>
+                  <div className="bg-stone-50 p-4 rounded-2xl flex items-center justify-center text-center">
+                    <p className="text-[10px] text-stone-400 font-bold italic uppercase tracking-widest leading-relaxed">
+                      System ensures platform integrity and prevents signal saturation.
+                    </p>
+                  </div>
+               </div>
             </div>
           </div>
         ) : (
