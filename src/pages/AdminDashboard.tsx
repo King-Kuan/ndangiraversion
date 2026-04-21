@@ -37,9 +37,19 @@ export default function AdminDashboard() {
 
   // Message Center States
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [customMessage, setCustomMessage] = useState('');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<{success: number, total: number} | null>(null);
+
+  const emailFooter = `
+    <div style="margin-top: 40px; border-top: 1px solid #e7e5e4; padding-top: 20px; font-size: 11px; color: #78716c;">
+      <p><strong>Ndangira - Rwanda Business Discovery</strong></p>
+      <p>Address: Gisenyi, Rubavu, Rwanda</p>
+      <p>Contact: management@ndangira.rw | +250 792 612 139</p>
+      <p style="margin-top: 10px;">The Palace, Inc. - The Palace Tech House</p>
+    </div>
+  `;
 
   const presets = [
     {
@@ -53,6 +63,7 @@ export default function AdminDashboard() {
           <p>We've recently added several new high-quality business listings to Ndangira. From local artisans to tech services, discovery is just a click away.</p>
           <p>Our platform is growing every day, helping connect you with Rwanda's most vibrant services.</p>
           <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
         </div>
       `
     },
@@ -67,6 +78,156 @@ export default function AdminDashboard() {
           <p>Check out our featured listings of the week! These businesses have been verified and highly rated by the community.</p>
           <p>Support local growth by discovering excellence in your category.</p>
           <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'promo',
+      title: 'Weekend Promo',
+      subject: 'Weekend Special Offers on Ndangira',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #f59e0b;">Weekend Specials</h1>
+          <p>Hello ${name},</p>
+          <p>Don't miss out on exclusive weekend offers from businesses in Gisenyi and beyond. Check the platform now for limited-time deals!</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'category',
+      title: 'New Category Launch',
+      subject: 'New Business Categories Now Available',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #6366f1;">More Ways to Discover</h1>
+          <p>Hello ${name},</p>
+          <p>We've expanded our search categories! You can now browse even more specific service sectors to find exactly what you need.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'safety',
+      title: 'Security & Safety Tips',
+      subject: 'Safe Discovery on Ndangira',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #ef4444;">Your Safety First</h1>
+          <p>Hello ${name},</p>
+          <p>When discovering new businesses, remember to check ratings and verified badges. Your safety and trust are our priorities.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'growth',
+      title: 'Business Growth Resource',
+      subject: 'Tips for Growing Your Local Business',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #10b981;">Grow With Us</h1>
+          <p>Hello ${name},</p>
+          <p>Did you know that Featured listings on Ndangira see 3x more engagement? Update your listing today to reach more customers.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'community',
+      title: 'Community Update',
+      subject: 'Local Community News from Ndangira',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #3b82f6;">Platform Community</h1>
+          <p>Hello ${name},</p>
+          <p>Join the conversation on our local discovery boards. Your feedback helps Rwandan businesses thrive.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'reviews',
+      title: 'Review Reminder',
+      subject: 'Your Opinion Matters!',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #ec4899;">Share Your Voice</h1>
+          <p>Hello ${name},</p>
+          <p>Found a great service recently? Leave a review on Ndangira to help others find quality local businesses.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'benefits',
+      title: 'Member Perks',
+      subject: 'Exclusive Benefits for Ndangira Users',
+      html: (name: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #8b5cf6;">Unlock Your Rewards</h1>
+          <p>Hello ${name},</p>
+          <p>As a valued member of Ndangira, you have access to exclusive platform features. Sign in to see what's reserved for you.</p>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'custom_announcement',
+      title: 'Custom Announcement',
+      isCustom: true,
+      subject: 'Ndangira: Special Announcement',
+      html: (name: string, content: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #059669;">Special Announcement</h1>
+          <p>Hello ${name},</p>
+          <div style="line-height: 1.6; margin: 20px 0;">
+            ${content ? content.replace(/\n/g, '<br/>') : '...'}
+          </div>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'custom_greeting',
+      title: 'Custom Seasonal Greeting',
+      isCustom: true,
+      subject: 'Warm Wishes from Ndangira',
+      html: (name: string, content: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #f59e0b;">Warm Wishes</h1>
+          <p>Hello ${name},</p>
+          <div style="line-height: 1.6; margin: 20px 0;">
+            ${content ? content.replace(/\n/g, '<br/>') : '...'}
+          </div>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
+        </div>
+      `
+    },
+    {
+      id: 'custom_update',
+      title: 'Custom Urgent Update',
+      isCustom: true,
+      subject: 'Ndangira: Important Update',
+      html: (name: string, content: string) => `
+        <div style="font-family: sans-serif; color: #1c1917;">
+          <h1 style="color: #ef4444;">Important Update</h1>
+          <p>Hello ${name},</p>
+          <div style="line-height: 1.6; margin: 20px 0;">
+            ${content ? content.replace(/\n/g, '<br/>') : '...'}
+          </div>
+          <p>Best regards,<br/>The Ndangira Team</p>
+          ${emailFooter}
         </div>
       `
     }
@@ -78,6 +239,11 @@ export default function AdminDashboard() {
     let successCount = 0;
     const template = presets.find(p => p.id === selectedTemplate);
     if (!template) return;
+    if (template.isCustom && !customMessage) {
+      alert("Please provide the custom message body.");
+      setIsSending(false);
+      return;
+    }
 
     const todayDate = new Date().toISOString().split('T')[0];
     const yesterdayDate = new Date(Date.now() - 86400000).toISOString().split('T')[0];
@@ -119,7 +285,7 @@ export default function AdminDashboard() {
           body: JSON.stringify({
             email,
             subject: template.subject,
-            html: template.html(userName)
+            html: template.isCustom ? (template as any).html(userName, customMessage) : (template as any).html(userName)
           })
         });
 
@@ -573,27 +739,47 @@ export default function AdminDashboard() {
                 <Mail size={28} /> Campaign Builder
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 max-h-[400px] overflow-y-auto pr-4">
                 {presets.map(p => (
                   <button 
                     key={p.id}
-                    onClick={() => setSelectedTemplate(p.id)}
+                    onClick={() => {
+                      setSelectedTemplate(p.id);
+                      if (!p.isCustom) setCustomMessage('');
+                    }}
                     className={`text-left p-6 rounded-[2.5rem] border-2 transition-all ${selectedTemplate === p.id ? 'border-emerald-500 bg-emerald-50/30' : 'border-stone-100 bg-stone-50 hover:border-stone-200'}`}
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`p-2 rounded-xl ${selectedTemplate === p.id ? 'bg-emerald-500 text-white' : 'bg-stone-200 text-stone-500'}`}>
+                      <div className={`p-2 rounded-xl shrink-0 ${selectedTemplate === p.id ? 'bg-emerald-500 text-white' : 'bg-stone-200 text-stone-500'}`}>
                         <FileText size={20} />
                       </div>
-                      <h4 className="font-bold text-stone-800">{p.title}</h4>
+                      <h4 className="font-bold text-stone-800 text-xs sm:text-sm">{p.title}</h4>
                     </div>
+                    {p.isCustom && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full mb-3 inline-block">Flexible Body</span>}
                     <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest mb-1 italic">Subject</p>
                     <p className="text-xs text-stone-600 font-medium mb-4 line-clamp-1">{p.subject}</p>
                     <div className="bg-white/50 p-4 rounded-xl text-[10px] text-stone-500 italic line-clamp-3 leading-relaxed">
-                      {p.html('Recipient')}
+                      {p.isCustom ? (p as any).html('Recipient', 'Your custom message goes here...') : (p as any).html('Recipient')}
                     </div>
                   </button>
                 ))}
               </div>
+
+              {selectedTemplate && presets.find(p => p.id === selectedTemplate)?.isCustom && (
+                <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <label className="block text-[10px] font-black uppercase text-stone-400 mb-3 tracking-[0.2em] italic">Compose Message Body</label>
+                  <textarea 
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    placeholder="Enter the main content of your email here..."
+                    className="w-full bg-stone-50 border-2 border-stone-100 rounded-3xl p-6 min-h-[200px] text-stone-900 focus:border-emerald-500 focus:ring-0 transition-all font-medium text-sm leading-relaxed"
+                  />
+                  <p className="mt-4 text-[10px] text-stone-400 font-medium flex items-center gap-2">
+                    <CheckCircle size={12} className="text-emerald-500" />
+                    Placeholders like Name, Location, and Contacts are automatically injected.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-6">
                 <div>
