@@ -22,15 +22,15 @@ export default function Register() {
     password: '',
     businessName: '',
     businessDescription: '',
-    businessCity: 'Kigali',
+    businessCity: 'Gasabo',
     businessCategory: 'Food',
     businessPhone: '',
     businessEmail: '',
     businessWebsite: '',
     businessAddress: '',
     plan: 'free',
-    lat: -1.9441,
-    lng: 30.0619,
+    lat: -1.9,
+    lng: 30.1,
     photos: [] as string[]
   });
 
@@ -258,7 +258,7 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">City</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">District</label>
                   <select 
                     className="w-full bg-stone-50 border-stone-100 rounded-2xl px-6 py-4 text-stone-900 focus:ring-emerald-500"
                     value={formData.businessCity}

@@ -237,7 +237,7 @@ export default function Dashboard() {
                       <p className="text-stone-500 text-sm line-clamp-2 leading-relaxed">{business.description}</p>
                     </div>
                     <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-widest text-stone-400">
-                      <div className="flex items-center gap-1.5"><MapPin size={14} /> {business.city}</div>
+                      <div className="flex items-center gap-1.5"><MapPin size={14} /> District: {business.city}</div>
                       <div className="flex items-center gap-1.5"><CreditCard size={14} /> Plan: {business.plan}</div>
                     </div>
                     <div className="pt-4 flex gap-4">

@@ -12,10 +12,10 @@ export default function Home() {
   const [businesses, setBusinesses] = useState<BusinessListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCity, setSelectedCity] = useState('Kigali');
+  const [selectedCity, setSelectedCity] = useState('Gasabo');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-1.9441, 30.0619]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-1.9, 30.1]);
   const [mapZoom, setMapZoom] = useState(13);
 
   const fetchBusinesses = async () => {
@@ -115,7 +115,7 @@ export default function Home() {
               
               <div className="space-y-6">
                 <div>
-                  <label className="text-xs uppercase font-bold text-stone-400 tracking-widest block mb-3">Select City</label>
+                  <label className="text-xs uppercase font-bold text-stone-400 tracking-widest block mb-3">Select District</label>
                   <select 
                     className="w-full bg-stone-50 border-stone-200 rounded-xl text-sm focus:ring-emerald-500 focus:border-emerald-500 px-4 py-3"
                     value={selectedCity}
@@ -193,7 +193,7 @@ export default function Home() {
                 </button>
               </div>
               <div className="px-4 text-xs font-medium text-stone-400">
-                Showing {filteredBusinesses.length} businesses in {selectedCity}
+                Showing {filteredBusinesses.length} businesses in {selectedCity} District
               </div>
             </div>
 
@@ -309,8 +309,8 @@ export default function Home() {
       {/* Ticker Row */}
       <div className="bg-stone-900 py-6 border-y border-stone-800">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-8 overflow-hidden whitespace-nowrap">
-          <span className="text-stone-500 text-xs font-black uppercase tracking-widest">Trending Cities:</span>
-          {CITIES.slice(0, 6).map(city => (
+          <span className="text-stone-500 text-xs font-black uppercase tracking-widest">Trending Districts:</span>
+          {CITIES.slice(0, 10).map(city => (
             <button key={city.name} onClick={() => setSelectedCity(city.name)} className="text-stone-300 text-sm font-medium hover:text-emerald-400 transition-colors">#{city.name}</button>
           ))}
         </div>
