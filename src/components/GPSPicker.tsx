@@ -67,37 +67,61 @@ export default function GPSPicker({ initialPos, onLocationChange }: GPSPickerPro
     setIsLocating(true);
     setLocationError(null);
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        console.log("Location successfully captured:", newPos);
-        setPosition(newPos);
-        onLocationChange(newPos[0], newPos[1]);
-        setIsLocating(false);
-      },
-      (error) => {
-        console.error("Geolocation error detail:", error);
-        setIsLocating(false);
-        switch(error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError("Permission denied. Ensure location access is allowed in your browser settings.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setLocationError("Position unavailable. Try moving to a clearer area or outdoor space.");
-            break;
-          case error.TIMEOUT:
-            setLocationError("Timed out. Your device took too long to respond. Try again.");
-            break;
-          default:
-            setLocationError("Unable to retrieve your exact location.");
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 20000, // 20 seconds for better satellite lock
-        maximumAge: 0    // Fresh location every time
+    const optionsHigh = {
+      enableHighAccuracy: true,
+      timeout: 10000, // Try high accuracy for 10 seconds first
+      maximumAge: 0
+    };
+
+    const optionsLow = {
+      enableHighAccuracy: false,
+      timeout: 15000, // Give it more time for low accuracy if high fails
+      maximumAge: 60000 // Allow cached positions up to 1 minute old
+    };
+
+    const successCallback = (pos: GeolocationPosition) => {
+      const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+      console.log("Location successfully captured:", newPos);
+      setPosition(newPos);
+      onLocationChange(newPos[0], newPos[1]);
+      setIsLocating(false);
+      setLocationError(null);
+    };
+
+    const errorCallback = (error: GeolocationPositionError) => {
+      console.error("High accuracy geolocation failed:", error);
+      
+      // If it failed due to permission, don't bother with fallback
+      if (error.code === error.PERMISSION_DENIED) {
+        finalErrorCallback(error);
+        return;
       }
-    );
+
+      // Fallback to low accuracy
+      console.log("Attempting low accuracy fallback...");
+      navigator.geolocation.getCurrentPosition(successCallback, finalErrorCallback, optionsLow);
+    };
+
+    const finalErrorCallback = (error: GeolocationPositionError) => {
+      setIsLocating(false);
+      console.error("Final geolocation error:", error);
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          setLocationError("Permission denied. Ensure location access is allowed in your browser settings.");
+          break;
+        case error.POSITION_UNAVAILABLE:
+          setLocationError("Position unavailable. Try moving to a clearer area or outdoor space.");
+          break;
+        case error.TIMEOUT:
+          setLocationError("Connection relay timed out. Try moving near a window or check your internet.");
+          break;
+        default:
+          setLocationError("Unable to retrieve your exact location.");
+      }
+    };
+
+    // Start with high accuracy
+    navigator.geolocation.getCurrentPosition(successCallback, errorCallback, optionsHigh);
   }, [onLocationChange]);
 
   return (
