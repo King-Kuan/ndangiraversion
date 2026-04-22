@@ -115,7 +115,11 @@ export default function Register() {
         const emailRes = await fetch('/api/email/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: formData.email, name: formData.name })
+          body: JSON.stringify({ 
+            email: formData.email, 
+            name: formData.name,
+            baseUrl: window.location.origin
+          })
         });
         if (!emailRes.ok) {
           const emailData = await emailRes.json();

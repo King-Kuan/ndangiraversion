@@ -41,7 +41,8 @@ app.post("/api/email/welcome", async (req, res) => {
     console.warn("Resend not configured, skipping email.");
     return res.json({ success: true, message: "Resend not configured" });
   }
-  const { email, name } = req.body;
+  const { email, name, baseUrl } = req.body;
+  const siteUrl = baseUrl || 'https://ndangira.rw';
   try {
     // NOTE: Resend requires a verified domain to send from anything other than 'onboarding@resend.dev'
     // If the user hasn't set RESEND_VERIFIED=true, we force onboarding@resend.dev
@@ -61,6 +62,7 @@ app.post("/api/email/welcome", async (req, res) => {
           <p>Hello ${name},</p>
           <p>Thank you for choosing <strong>Ndangira</strong> by The Palace, Inc. We have received your business registration request.</p>
           <p>Our administration team is currently reviewing your details and verifying payment where applicable. You will receive another notification once your listing is active.</p>
+          <p><a href="${siteUrl}" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px;">Explore the Platform</a></p>
           <p>Best regards,<br/>The Ndangira Team</p>
           <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 40px 0;" />
           <p style="font-size: 12px; color: #78716c;">The Palace, Inc. - The Palace Tech House<br/>Gisenyi, Rubavu, Rwanda</p>
@@ -89,7 +91,8 @@ app.post("/api/email/approved", async (req, res) => {
   if (!resend) {
     return res.json({ success: true, message: "Resend not configured" });
   }
-  const { email, businessName } = req.body;
+  const { email, businessName, baseUrl } = req.body;
+  const siteUrl = baseUrl || 'https://ndangira.rw';
   try {
     const isVerified = process.env.RESEND_VERIFIED === 'true';
     const fromEmail = isVerified ? 'Ndangira <noreply@getpawa.co.rw>' : 'Ndangira <onboarding@resend.dev>';
@@ -105,6 +108,7 @@ app.post("/api/email/approved", async (req, res) => {
           <p>Great news!</p>
           <p>Your business listing <strong>${businessName}</strong> has been approved and is now live on <strong>Ndangira</strong>.</p>
           <p>Users can now discover your services, see your contact details, and find you on our interactive map.</p>
+          <p><a href="${siteUrl}" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px;">View Your Listing</a></p>
           <p>Thank you for being part of Africa's premier business network.</p>
           <p>Best regards,<br/>The Ndangira Team</p>
           <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 40px 0;" />

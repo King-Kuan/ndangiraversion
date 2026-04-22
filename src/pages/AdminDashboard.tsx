@@ -45,6 +45,7 @@ export default function AdminDashboard() {
   const emailFooter = `
     <div style="margin-top: 40px; border-top: 1px solid #e7e5e4; padding-top: 20px; font-size: 11px; color: #78716c;">
       <p><strong>Ndangira - Rwanda Business Discovery</strong></p>
+      <p><a href="${window.location.origin}" style="color: #059669; text-decoration: none; font-weight: bold;">Visit Ndangira Platform</a></p>
       <p>Address: Gisenyi, Rubavu, Rwanda</p>
       <p>Contact: management@ndangira.rw | +250 792 612 139</p>
       <p style="margin-top: 10px;">The Palace, Inc. - The Palace Tech House</p>
@@ -370,7 +371,8 @@ export default function AdminDashboard() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 email: business.email,
-                businessName: business.name
+                businessName: business.name,
+                baseUrl: window.location.origin
               })
             });
             await updateDoc(docRef, { approvalEmailSent: true });

@@ -4,9 +4,9 @@ import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { BusinessListing, Review } from '../types';
 import MapComponent from '../components/MapComponent';
-import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye, Share2, Check } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +16,7 @@ export default function BusinessDetail() {
   const [user] = useAuthState(auth);
   const [newReview, setNewReview] = useState({ content: '', rating: 5 });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [showShareToast, setShowShareToast] = useState(false);
 
   const fetchBusiness = async (isFirstLoad = false) => {
     if (!id) return;
@@ -94,6 +95,33 @@ export default function BusinessDetail() {
       });
     } catch (error) {
       console.error('Failed to increment map clicks', error);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!business) return;
+    
+    const shareData = {
+      title: business.name,
+      text: `Check out ${business.name} on Ndangira!`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy link:', err);
+      }
     }
   };
 
@@ -359,11 +387,32 @@ export default function BusinessDetail() {
               </div>
 
               <div className="pt-8 border-t border-stone-50">
-                <button className="w-full bg-emerald-100 text-emerald-700 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-200 transition-colors">
+                <button 
+                  onClick={handleShare}
+                  className="w-full bg-emerald-100 text-emerald-700 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <Share2 size={16} />
                   Share this business
                 </button>
               </div>
             </div>
+
+            {/* Share Toast */}
+            <AnimatePresence>
+              {showShareToast && (
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 50 }}
+                  className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2000] bg-stone-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+                >
+                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                    <Check size={14} />
+                  </div>
+                  Link copied to clipboard!
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Premium Badge Promo */}
             {business.plan === 'featured' && (
