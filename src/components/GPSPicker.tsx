@@ -41,18 +41,37 @@ function ChangeView({ center }: { center: [number, number] }) {
 export default function GPSPicker({ initialPos, onLocationChange }: GPSPickerProps) {
   const [position, setPosition] = useState<[number, number]>(initialPos);
 
+  const [isLocating, setIsLocating] = useState(false);
+
   useEffect(() => {
     setPosition(initialPos);
   }, [initialPos]);
 
   const handleUseMyLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setPosition(newPos);
         onLocationChange(newPos[0], newPos[1]);
-      });
-    }
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        alert("Unable to retrieve your location. Please ensure GPS is enabled.");
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
   };
 
   return (
@@ -62,10 +81,11 @@ export default function GPSPicker({ initialPos, onLocationChange }: GPSPickerPro
         <button 
           type="button"
           onClick={handleUseMyLocation}
-          className="flex items-center gap-2 text-emerald-600 font-bold text-xs hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-all"
+          disabled={isLocating}
+          className={`flex items-center gap-2 text-emerald-600 font-bold text-xs hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-all ${isLocating ? 'opacity-50 animate-pulse' : ''}`}
         >
-          <Target size={14} />
-          <span>Use My Location</span>
+          <Target size={14} className={isLocating ? 'animate-spin' : ''} />
+          <span>{isLocating ? 'Locating...' : 'Use My Location'}</span>
         </button>
       </div>
 
