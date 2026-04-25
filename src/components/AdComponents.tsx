@@ -186,6 +186,11 @@ export const RedirectInterstitial = () => {
         <div className="w-20 h-20 bg-purple-600 rounded-3xl flex items-center justify-center text-white mx-auto mb-8 animate-bounce">
           <ExternalLink size={40} />
         </div>
+        {ad.image && (
+          <div className="w-full h-48 rounded-3xl overflow-hidden mb-8 shadow-2xl border border-white/10">
+            <img src={ad.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt={ad.title} />
+          </div>
+        )}
         <h2 className="text-3xl font-black text-white mb-4 uppercase tracking-tight">Partner Spotlight</h2>
         <p className="text-stone-400 font-bold mb-8 italic">"{ad.title}"</p>
         <div className="text-5xl font-black text-emerald-400 mb-8">{countdown}</div>

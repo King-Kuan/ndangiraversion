@@ -63,7 +63,7 @@ export const PLANS = [
 ];
 
 export const AD_PRICES = {
-  ribbon: '10,000 RWF',
-  popup: '15,000 RWF',
-  redirect: '25,000 RWF'
+  ribbon: '15,000 RWF',
+  popup: '25,000 RWF',
+  redirect: '35,000 RWF'
 };

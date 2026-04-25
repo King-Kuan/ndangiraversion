@@ -5,6 +5,7 @@ import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { BusinessListing, PalaceAd, AdPlacement, BusinessPlan } from '../types';
 import { AD_PRICES, CITIES } from '../constants';
+import ImageUpload from '../components/ImageUpload';
 import { 
   Building2, 
   Settings, 
@@ -443,7 +444,7 @@ export default function Dashboard() {
                         className={`p-4 rounded-2xl border-2 transition-all text-left ${newAd.placement === t.id ? 'border-purple-600 bg-purple-50' : 'border-stone-100 hover:border-stone-200'}`}
                       >
                         <p className={`text-xs font-black uppercase tracking-wide ${newAd.placement === t.id ? 'text-purple-700' : 'text-stone-900'}`}>{t.label}</p>
-                        <p className={`text-[10px] font-bold ${newAd.placement === t.id ? 'text-purple-600' : 'text-emerald-600'}`}>{AD_PRICES[t.id as keyof typeof AD_PRICES]}</p>
+                        <p className={`text-[10px] font-black ${newAd.placement === t.id ? 'text-purple-600' : 'text-emerald-600'}`}>{AD_PRICES[t.id as keyof typeof AD_PRICES]}</p>
                         <p className="text-[10px] text-stone-400 font-medium">{t.desc}</p>
                       </button>
                     ))}
@@ -462,40 +463,74 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {newAd.placement === 'popup' && (
-                  <>
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Image URL</label>
-                      <input 
-                        type="url"
-                        placeholder="https://..."
-                        className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
-                        value={newAd.image}
-                        onChange={(e) => setNewAd(prev => ({ ...prev, image: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Description</label>
-                      <textarea 
-                        className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
-                        placeholder="Additional details for the popup..."
-                        value={newAd.description}
-                        onChange={(e) => setNewAd(prev => ({ ...prev, description: e.target.value }))}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {(newAd.placement === 'popup' || newAd.placement === 'redirect') && (
+                {(newAd.placement === 'popup' || newAd.placement === 'redirect' || newAd.placement === 'ribbon') && (
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Target URL / Link</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Target URL / Link {newAd.placement === 'ribbon' && '(Optional)'}</label>
                     <input 
                       type="url"
-                      required
+                      required={newAd.placement !== 'ribbon'}
                       placeholder="https://yourwebsite.com"
                       className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
                       value={newAd.targetUrl}
                       onChange={(e) => setNewAd(prev => ({ ...prev, targetUrl: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                {(newAd.placement === 'popup' || newAd.placement === 'redirect') && (
+                  <>
+                    <div className="space-y-4">
+                      <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-1">Ad Image {(newAd.placement === 'redirect') && '(Optional)'}</label>
+                      
+                      {newAd.image ? (
+                        <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-stone-100 group">
+                          <img src={newAd.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <button 
+                            type="button" 
+                            onClick={() => setNewAd(p => ({ ...p, image: '' }))}
+                            className="absolute top-2 right-2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <ImageUpload 
+                            onUploadSuccess={(url) => setNewAd(p => ({ ...p, image: url }))}
+                            maxFiles={1}
+                          />
+                          
+                          {business && business.photos.length > 0 && (
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Or choose from your business photos</p>
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                  {business.photos.map((url, i) => (
+                                    <button 
+                                      key={i}
+                                      type="button"
+                                      onClick={() => setNewAd(p => ({ ...p, image: url }))}
+                                      className="w-16 h-16 rounded-xl overflow-hidden border-2 border-transparent hover:border-purple-500 transition-all shrink-0"
+                                    >
+                                      <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                    </button>
+                                  ))}
+                                </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {newAd.placement === 'popup' && (
+                  <div>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Description</label>
+                    <textarea 
+                      className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
+                      placeholder="Additional details for the popup..."
+                      value={newAd.description}
+                      onChange={(e) => setNewAd(prev => ({ ...prev, description: e.target.value }))}
                     />
                   </div>
                 )}
