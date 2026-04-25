@@ -166,16 +166,18 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-        <div className="flex gap-4">
-          <Link to="/pricing" className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all">
-            <ArrowUpRight size={18} />
-            Upgrade Plan
-          </Link>
-          <Link to="/dashboard/settings" className="bg-white border border-stone-200 text-stone-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
-            <Settings size={18} />
-            Manage Listing
-          </Link>
-        </div>
+        {business && (
+          <div className="flex gap-4">
+            <Link to="/pricing" className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all">
+              <ArrowUpRight size={18} />
+              Upgrade Plan
+            </Link>
+            <Link to="/dashboard/settings" className="bg-white border border-stone-200 text-stone-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
+              <Settings size={18} />
+              Manage Listing
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -333,26 +335,39 @@ export default function Dashboard() {
             <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
               <TrendingUp size={120} />
             </div>
-            <h3 className="font-black text-2xl leading-tight mb-4">Scale your<br />business online</h3>
+            <h3 className="font-black text-2xl leading-tight mb-4">{business ? 'Scale your' : 'Grow with'} <br />business online</h3>
             <p className="text-xs font-medium text-emerald-100 opacity-80 leading-relaxed mb-8">
-              Ndangira is built for growth. Upgrade to a standard plan to unlock up to 10 photos and higher visibility.
+              {business 
+                ? "Ndangira is built for growth. Upgrade to a standard plan to unlock up to 10 photos and higher visibility."
+                : "Looking to reach more customers in Rwanda? Register your business today and get discovered across the country."}
             </p>
             <div className="flex gap-4">
-              {business.plan !== 'featured' && (
-                <button 
-                  onClick={() => handleUpgrade('featured')}
+              {business ? (
+                <>
+                  {business.plan !== 'featured' && (
+                    <button 
+                      onClick={() => handleUpgrade('featured')}
+                      className="inline-block bg-white text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 transition-transform"
+                    >
+                      Upgrade to Featured
+                    </button>
+                  )}
+                  {business.plan === 'free' && (
+                    <button 
+                      onClick={() => handleUpgrade('standard')}
+                      className="inline-block bg-emerald-100 text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 transition-transform"
+                    >
+                      Go Standard
+                    </button>
+                  )}
+                </>
+              ) : (
+                <Link 
+                  to="/register"
                   className="inline-block bg-white text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 transition-transform"
                 >
-                  Upgrade to Featured
-                </button>
-              )}
-              {business.plan === 'free' && (
-                <button 
-                  onClick={() => handleUpgrade('standard')}
-                  className="inline-block bg-emerald-100 text-emerald-900 px-6 py-3 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 transition-transform"
-                >
-                  Go Standard
-                </button>
+                  Register Business
+                </Link>
               )}
             </div>
           </div>
