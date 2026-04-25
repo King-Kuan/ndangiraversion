@@ -65,20 +65,27 @@ export default function Layout({ children }: LayoutProps) {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <Link 
                   to="/login" 
-                  className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-full transition-colors"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-full transition-colors text-sm font-bold"
                 >
                   <LogIn size={18} />
                   <span>Login</span>
                 </Link>
                 <Link 
+                  to="/signup" 
+                  className="flex items-center gap-2 px-4 py-2 text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors text-sm font-bold border border-emerald-100"
+                >
+                  <span>Sign Up</span>
+                </Link>
+                <Link 
                   to="/register" 
-                  className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all"
+                  className="flex items-center gap-2 bg-stone-900 text-white px-5 py-2.5 rounded-full font-bold hover:bg-black shadow-md hover:shadow-lg transition-all text-xs uppercase tracking-widest"
                 >
                   <PlusCircle size={18} />
-                  <span>Add Business</span>
+                  <span className="hidden xs:inline">Add Business</span>
+                  <span className="xs:hidden">Add</span>
                 </Link>
               </div>
             )}

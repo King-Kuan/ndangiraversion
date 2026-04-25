@@ -75,9 +75,15 @@ export default function Login() {
                   {loading ? 'Logging in...' : 'Log In'}
                   {!loading && <ChevronRight size={20} />}
                 </button>
-                <p className="text-stone-400 text-xs text-center mt-8">
-                  Don't have an account? <Link to="/register" className="text-emerald-600 font-bold hover:underline">Register your business</Link>
-                </p>
+                <div className="mt-8 pt-8 border-t border-stone-100 flex flex-col items-center gap-4">
+                  <p className="text-stone-400 text-xs text-center">
+                    Don't have an account? <Link to="/signup" className="text-emerald-600 font-bold hover:underline">Sign up as user</Link>
+                  </p>
+                  <p className="text-stone-400 text-[10px] uppercase tracking-widest font-black">or</p>
+                  <Link to="/register" className="text-stone-900 border-b-2 border-stone-900 font-black text-xs uppercase tracking-widest hover:text-emerald-600 hover:border-emerald-600 transition-all">
+                    Register a business
+                  </Link>
+                </div>
               </div>
             </form>
           </motion.div>

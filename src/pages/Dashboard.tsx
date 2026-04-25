@@ -149,10 +149,10 @@ export default function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-12">
         <div>
-          <h1 className="text-4xl font-black text-stone-900 tracking-tight mb-2">Owner Dashboard</h1>
-          <p className="text-stone-500 font-medium">Welcome back, {user?.displayName}. Here's how your business is doing.</p>
+          <h1 className="text-4xl font-black text-stone-900 tracking-tight mb-2">Welcome, {user?.displayName}!</h1>
+          <p className="text-stone-500 font-medium">Manage your reviews, ads, and business listings in once place.</p>
           
-          {businesses.length > 1 && (
+          {businesses.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
               {businesses.map((b, idx) => (
                 <button

@@ -306,6 +306,49 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Community Section */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="bg-stone-900 rounded-[3.5rem] p-8 md:p-20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-600 rounded-full blur-[100px] opacity-20 translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500 rounded-full blur-[100px] opacity-10 -translate-x-1/2 translate-y-1/2" />
+            
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="space-y-8">
+                <h2 className="text-4xl md:text-5xl font-black text-white leading-tight">
+                  Join Rwanda's biggest <span className="text-emerald-500">Business Community.</span>
+                </h2>
+                <p className="text-stone-400 text-lg leading-relaxed">
+                  Sign up to leave reviews, save your favorite local spots, and get direct access to exclusive platform features. Whether you're a customer or an entrepreneur, Ndangira is your home.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link to="/signup" className="bg-white text-stone-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs text-center hover:bg-stone-100 transition-all shadow-xl">
+                    Create User Account
+                  </Link>
+                  <Link to="/register" className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs text-center hover:bg-emerald-700 transition-all shadow-xl">
+                    Register My Business
+                  </Link>
+                </div>
+              </div>
+              <div className="hidden lg:grid grid-cols-2 gap-4">
+                {[
+                  { label: 'Trusted Reviews', text: 'Share your experience with thousands of users.', icon: Star },
+                  { label: 'GPS Discovery', text: 'Find exact building pins across all 30 districts.', icon: MapPin },
+                  { label: 'Direct Contact', text: 'Connect with owners via WhatsApp or MoMo.', icon: ExternalLink },
+                  { label: 'Business Growth', text: 'List your own services and start advertising.', icon: TrendingUp },
+                ].map((item, i) => (
+                  <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 p-6 rounded-3xl">
+                    <item.icon className="text-emerald-500 mb-4" size={24} />
+                    <h4 className="text-white font-bold mb-1">{item.label}</h4>
+                    <p className="text-stone-400 text-[10px] uppercase font-bold tracking-widest">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Ticker Row */}
       <div className="bg-stone-900 py-6 border-y border-stone-800">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-8 overflow-hidden whitespace-nowrap">
