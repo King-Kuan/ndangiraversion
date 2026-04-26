@@ -78,7 +78,9 @@ service cloud.firestore {
              data.status in ['pending', 'active', 'expired'] &&
              (!('expiryDate' in data) || data.expiryDate is timestamp) &&
              (!('businessName' in data) || (data.businessName is string && data.businessName.size() < 150)) &&
-             (!('businessPhone' in data) || (data.businessPhone is string && data.businessPhone.size() < 50));
+             (!('businessPhone' in data) || (data.businessPhone is string && data.businessPhone.size() < 50)) &&
+             (!('views' in data) || data.views is number) &&
+             (!('clicks' in data) || data.clicks is number);
     }
 
     function isValidReview(data) {
@@ -115,9 +117,11 @@ service cloud.firestore {
     match /palaceads/{adId} {
       allow read: if resource.data.status == 'active' || (isAuthenticated() && (request.auth.uid == resource.data.ownerUid || isAdmin()));
       allow create: if isAuthenticated() && isValidAd(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
-      allow update: if isAuthenticated() && isValidAd(request.resource.data) && (
-        (request.auth.uid == resource.data.ownerUid && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
-        isAdmin()
+      allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks'])) || (
+        isAuthenticated() && isValidAd(request.resource.data) && (
+          (request.auth.uid == resource.data.ownerUid && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
+          isAdmin()
+        )
       );
       allow delete: if isAdmin();
     }

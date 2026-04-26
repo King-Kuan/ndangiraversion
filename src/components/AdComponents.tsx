@@ -83,15 +83,15 @@ export const PalacePopup = () => {
 
   useEffect(() => {
     const fetchPopup = async () => {
-      // Small chance to show popup to not annoy users too much
-      if (Math.random() > 0.4) return;
+      // Very small chance for random global popup (now 10% instead of 40%)
+      if (Math.random() > 0.1) return;
       
       try {
         const q = query(
           collection(db, 'palaceads'), 
           where('placement', '==', 'popup'),
           where('status', '==', 'active'),
-          limit(5) // Get a random one from top 5
+          limit(5)
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
@@ -99,17 +99,48 @@ export const PalacePopup = () => {
           const docData = snapshot.docs[randomIndex];
           setAd({ id: docData.id, ...docData.data() } as PalaceAd);
           
-          // Show after 5 seconds delay
+          // Show after 10 seconds delay globally
           setTimeout(() => {
             setIsOpen(true);
             trackAdView(docData.id);
-          }, 5000);
+          }, 10000);
         }
       } catch (error) {
         console.error('Popup fetch failed', error);
       }
     };
+
+    const triggerPopup = async () => {
+      try {
+        const q = query(
+          collection(db, 'palaceads'), 
+          where('placement', '==', 'popup'),
+          where('status', '==', 'active'),
+          limit(5)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const randomIndex = Math.floor(Math.random() * snapshot.docs.length);
+          const docData = snapshot.docs[randomIndex];
+          setAd({ id: docData.id, ...docData.data() } as PalaceAd);
+          setIsOpen(true);
+          trackAdView(docData.id);
+        }
+      } catch (error) {
+        console.warn('Contextual popup failed', error);
+      }
+    };
+
     fetchPopup();
+
+    // Listen for contextual business-related triggers
+    const handleTrigger = (e: any) => {
+      if (e.detail?.type === 'popup') {
+        triggerPopup();
+      }
+    };
+    window.addEventListener('palace-ad-trigger', handleTrigger as any);
+    return () => window.removeEventListener('palace-ad-trigger', handleTrigger as any);
   }, []);
 
   if (!ad) return null;
@@ -179,15 +210,15 @@ export const RedirectInterstitial = () => {
 
   useEffect(() => {
     const fetchRedirect = async () => {
-      // Very low chance to not be too intrusive
-      if (Math.random() > 0.05) return;
+      // Extremely low chance for random redirect (now 2% instead of 5%)
+      if (Math.random() > 0.02) return;
 
       try {
         const q = query(
           collection(db, 'palaceads'), 
           where('placement', '==', 'redirect'),
           where('status', '==', 'active'),
-          limit(1)
+          limit(5)
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
@@ -200,7 +231,36 @@ export const RedirectInterstitial = () => {
         console.error('Redirect fetch failed', error);
       }
     };
+
+    const triggerRedirect = async () => {
+      try {
+        const q = query(
+          collection(db, 'palaceads'), 
+          where('placement', '==', 'redirect'),
+          where('status', '==', 'active'),
+          limit(5)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const docData = snapshot.docs[0];
+          setAd({ id: docData.id, ...docData.data() } as PalaceAd);
+          setShow(true);
+          trackAdView(docData.id);
+        }
+      } catch (error) {
+        console.warn('Contextual redirect failed', error);
+      }
+    };
+
     fetchRedirect();
+
+    const handleTrigger = (e: any) => {
+      if (e.detail?.type === 'redirect') {
+        triggerRedirect();
+      }
+    };
+    window.addEventListener('palace-ad-trigger', handleTrigger as any);
+    return () => window.removeEventListener('palace-ad-trigger', handleTrigger as any);
   }, []);
 
   useEffect(() => {

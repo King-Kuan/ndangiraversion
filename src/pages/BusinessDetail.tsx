@@ -25,13 +25,20 @@ export default function BusinessDetail() {
       const docRef = doc(db, 'businesses', id);
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
-        setBusiness({ id: snapshot.id, ...snapshot.data() } as BusinessListing);
+        const businessData = snapshot.id ? { id: snapshot.id, ...snapshot.data() } as BusinessListing : null;
+        setBusiness(businessData);
         
         // Increment views on first load
         if (isFirstLoad) {
           await updateDoc(docRef, {
             views: increment(1)
           }).catch(console.error);
+
+          // Contextual ad trigger (Rare: 10% chance when viewing a business)
+          if (Math.random() < 0.1) {
+            const type = Math.random() < 0.8 ? 'popup' : 'redirect';
+            window.dispatchEvent(new CustomEvent('palace-ad-trigger', { detail: { type } }));
+          }
         }
       }
       

@@ -50,12 +50,28 @@ export default function Home() {
       });
 
       setBusinesses(sortedResults);
+      
+      // Trigger a rare popup when results are loaded
+      if (Math.random() < 0.15) {
+        window.dispatchEvent(new CustomEvent('palace-ad-trigger', { detail: { type: 'popup' } }));
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'businesses');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Rare redirect trigger when user spends time browsing
+    const timer = setTimeout(() => {
+      if (Math.random() < 0.1) {
+        window.dispatchEvent(new CustomEvent('palace-ad-trigger', { detail: { type: 'redirect' } }));
+      }
+    }, 45000); // 45 seconds of browsing
+
+    return () => clearTimeout(timer);
+  }, [selectedCity, selectedCategory]);
 
   useEffect(() => {
     fetchBusinesses();
@@ -216,6 +232,12 @@ export default function Home() {
                         <Link 
                           to={`/business/${business.id}`} 
                           key={business.id}
+                          onClick={() => {
+                            // 5% chance to trigger a popup when viewing a business
+                            if (Math.random() < 0.05) {
+                              window.dispatchEvent(new CustomEvent('palace-ad-trigger', { detail: { type: 'popup' } }));
+                            }
+                          }}
                           className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-stone-100 transition-all group flex flex-col"
                         >
                           <div className="relative h-48 bg-stone-200">
