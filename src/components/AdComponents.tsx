@@ -1,9 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import { PalaceAd } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, Megaphone } from 'lucide-react';
+
+const trackAdView = async (adId: string) => {
+  try {
+    await updateDoc(doc(db, 'palaceads', adId), {
+      views: increment(1)
+    });
+  } catch (err) {
+    // Silently fail to not interrupt UX
+    console.warn('Ad tracking failed', err);
+  }
+};
+
+const trackAdClick = async (adId: string) => {
+  try {
+    await updateDoc(doc(db, 'palaceads', adId), {
+      clicks: increment(1)
+    });
+  } catch (err) {
+    console.warn('Click tracking failed', err);
+  }
+};
 
 export const GlobalRibbon = () => {
   const [ad, setAd] = useState<PalaceAd | null>(null);
@@ -19,8 +40,9 @@ export const GlobalRibbon = () => {
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          setAd({ id: doc.id, ...doc.data() } as PalaceAd);
+          const docData = snapshot.docs[0];
+          setAd({ id: docData.id, ...docData.data() } as PalaceAd);
+          trackAdView(docData.id);
         }
       } catch (error) {
         console.error('Ribbon fetch failed', error);
@@ -40,7 +62,13 @@ export const GlobalRibbon = () => {
         </div>
         <p className="text-xs font-bold tracking-wide truncate">{ad.title}</p>
         {ad.targetUrl && (
-          <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black uppercase underline decoration-2 underline-offset-4 hover:text-purple-200 transition-colors">
+          <a 
+            href={ad.targetUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            onClick={() => trackAdClick(ad.id)}
+            className="text-[10px] font-black uppercase underline decoration-2 underline-offset-4 hover:text-purple-200 transition-colors"
+          >
             View Details
           </a>
         )}
@@ -68,11 +96,14 @@ export const PalacePopup = () => {
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           const randomIndex = Math.floor(Math.random() * snapshot.docs.length);
-          const doc = snapshot.docs[randomIndex];
-          setAd({ id: doc.id, ...doc.data() } as PalaceAd);
+          const docData = snapshot.docs[randomIndex];
+          setAd({ id: docData.id, ...docData.data() } as PalaceAd);
           
           // Show after 5 seconds delay
-          setTimeout(() => setIsOpen(true), 5000);
+          setTimeout(() => {
+            setIsOpen(true);
+            trackAdView(docData.id);
+          }, 5000);
         }
       } catch (error) {
         console.error('Popup fetch failed', error);
@@ -125,7 +156,10 @@ export const PalacePopup = () => {
                 href={ad.targetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  trackAdClick(ad.id);
+                  setIsOpen(false);
+                }}
                 className="block w-full bg-stone-900 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs text-center shadow-lg hover:bg-black transition-all"
               >
                 Learn More
@@ -157,9 +191,10 @@ export const RedirectInterstitial = () => {
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          setAd({ id: doc.id, ...doc.data() } as PalaceAd);
+          const docData = snapshot.docs[0];
+          setAd({ id: docData.id, ...docData.data() } as PalaceAd);
           setShow(true);
+          trackAdView(docData.id);
         }
       } catch (error) {
         console.error('Redirect fetch failed', error);
@@ -173,6 +208,7 @@ export const RedirectInterstitial = () => {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else if (show && countdown === 0 && ad?.targetUrl) {
+      trackAdClick(ad.id);
       window.open(ad.targetUrl, '_blank');
       setShow(false);
     }

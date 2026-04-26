@@ -52,6 +52,8 @@ export interface PalaceAd {
   ownerUid: string;
   businessName?: string;
   businessPhone?: string;
+  views: number;
+  clicks: number;
   expiryDate?: any;
   createdAt: any;
 }

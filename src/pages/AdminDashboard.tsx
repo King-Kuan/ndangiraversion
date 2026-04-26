@@ -15,6 +15,7 @@ import {
   FileText,
   Search,
   Check,
+  Megaphone,
   X,
   Phone,
   Mail,
@@ -234,7 +235,7 @@ export default function AdminDashboard() {
     }
   ];
 
-  const downloadReport = (type: 'businesses' | 'users') => {
+  const downloadReport = (type: 'businesses' | 'users' | 'campaigns') => {
     let csvContent = "";
     const today = new Date().toISOString().split('T')[0];
     
@@ -262,7 +263,7 @@ export default function AdminDashboard() {
         ];
         csvContent += row.join(",") + "\n";
       });
-    } else {
+    } else if (type === 'users') {
       const headers = ["Name", "Email", "UID", "Role", "Type", "Created At"];
       csvContent = headers.join(",") + "\n";
       
@@ -275,6 +276,27 @@ export default function AdminDashboard() {
           `"${u.role}"`,
           isOwner ? "Business Owner" : "Normal User",
           u.createdAt?.seconds ? new Date(u.createdAt.seconds * 1000).toISOString().split('T')[0] : ""
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+    } else if (type === 'campaigns') {
+      const headers = ["Campaign Title", "Placement", "Status", "Owner", "Business Name", "Views", "Clicks", "CTR (%)", "Expiry", "Created At"];
+      csvContent = headers.join(",") + "\n";
+      
+      allAds.forEach(ad => {
+        const owner = allUsers.find(u => u.uid === ad.ownerUid);
+        const ctr = ad.views ? ((ad.clicks || 0) / ad.views * 100).toFixed(2) : "0";
+        const row = [
+          `"${ad.title.replace(/"/g, '""')}"`,
+          `"${ad.placement}"`,
+          `"${ad.status}"`,
+          `"${owner?.name || ad.ownerUid}"`,
+          `"${ad.businessName || 'N/A'}"`,
+          ad.views || 0,
+          ad.clicks || 0,
+          `${ctr}%`,
+          ad.expiryDate?.seconds ? new Date(ad.expiryDate.seconds * 1000).toISOString().split('T')[0] : "N/A",
+          ad.createdAt?.seconds ? new Date(ad.createdAt.seconds * 1000).toISOString().split('T')[0] : ""
         ];
         csvContent += row.join(",") + "\n";
       });
@@ -746,18 +768,29 @@ export default function AdminDashboard() {
                     <div className="bg-stone-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Submitter</p>
-                          <p className="text-xs font-bold text-stone-900">{owner?.name || 'Unknown'}</p>
-                          <p className="text-[10px] text-stone-500 font-medium">{owner?.email || ad.ownerUid}</p>
+                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Performance (Views / Clicks)</p>
+                          <div className="flex items-center gap-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-stone-900">{ad.views || 0}</span>
+                              <span className="text-[8px] font-black text-stone-400 uppercase tracking-tighter">Views</span>
+                            </div>
+                            <div className="w-px h-6 bg-stone-200" />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-stone-900">{ad.clicks || 0}</span>
+                              <span className="text-[8px] font-black text-stone-400 uppercase tracking-tighter">Clicks</span>
+                            </div>
+                            <div className="w-px h-6 bg-stone-200" />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-purple-600">
+                                {ad.views ? ((ad.clicks || 0) / ad.views * 100).toFixed(1) : '0'}%
+                              </span>
+                              <span className="text-[8px] font-black text-stone-400 uppercase tracking-tighter">CTR</span>
+                            </div>
+                          </div>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Business Context</p>
-                          <p className="text-xs font-bold text-stone-900">{displayBusinessName}</p>
-                          {displayBusinessPhone && (
-                            <p className="text-[10px] text-stone-500 font-medium flex items-center gap-1 mt-0.5">
-                              <Phone size={10} /> {displayBusinessPhone}
-                            </p>
-                          )}
+                          <p className="text-[10px] font-black uppercase text-stone-400 mb-1">Submitter</p>
+                          <p className="text-xs font-bold text-stone-900">{owner?.name || 'Unknown'}</p>
                         </div>
                       </div>
                       <div className="text-right flex flex-col justify-between">
@@ -984,6 +1017,25 @@ export default function AdminDashboard() {
                   >
                     <FileText size={18} />
                     Download User CSV
+                  </button>
+                </div>
+
+                <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 group hover:border-purple-200 transition-all">
+                  <div className="flex items-center gap-4 mb-6 text-purple-600">
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                      <Megaphone size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-stone-900 group-hover:text-purple-600 transition-colors">Campaign Performance</h3>
+                  </div>
+                  <p className="text-sm text-stone-500 mb-8 leading-relaxed">
+                    Detailed analytics of PalaceAds campaigns including impressions (views), click-through rates, and placement distribution.
+                  </p>
+                  <button 
+                    onClick={() => downloadReport('campaigns')}
+                    className="w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center justify-center gap-3"
+                  >
+                    <FileText size={18} />
+                    Download Campaign CSV
                   </button>
                 </div>
               </div>

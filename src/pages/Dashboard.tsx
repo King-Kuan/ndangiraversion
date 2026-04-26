@@ -86,6 +86,8 @@ export default function Dashboard() {
         businessPhone: business?.phone || '',
         city: business?.city || 'Kigali', // Fallback to Kigali if no business
         status: 'pending',
+        views: 0,
+        clicks: 0,
         expiryDate: thirtyDaysFromNow,
         createdAt: serverTimestamp()
       };
@@ -307,11 +309,22 @@ export default function Dashboard() {
                             {ad.status}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{ad.placement}</p>
-                          <span className="w-1 h-1 bg-stone-200 rounded-full" />
-                          <p className="text-[10px] font-bold text-stone-500">
-                            {ad.expiryDate?.seconds ? `Exp: ${new Date(ad.expiryDate.seconds * 1000).toLocaleDateString()}` : 'One month duration'}
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{ad.placement}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 bg-stone-200/50 px-2 py-0.5 rounded-md">
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-tighter">Views</span>
+                                <span className="text-[10px] font-black text-stone-900">{ad.views || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1 bg-stone-200/50 px-2 py-0.5 rounded-md">
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-tighter">Clicks</span>
+                                <span className="text-[10px] font-black text-stone-900">{ad.clicks || 0}</span>
+                            </div>
+                          </div>
+                          <p className="text-[10px] font-bold text-stone-500 italic">
+                            {ad.expiryDate?.seconds ? `Exp: ${new Date(ad.expiryDate.seconds * 1000).toLocaleDateString()}` : 'One month'}
                           </p>
                         </div>
                       </div>
