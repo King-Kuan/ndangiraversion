@@ -5,9 +5,10 @@ import { BusinessListing, PalaceAd } from '../types';
 import { CITIES, CATEGORIES } from '../constants';
 import MapComponent from '../components/MapComponent';
 import { AdCard } from '../components/AdComponents';
-import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink, CheckCircle, TrendingUp, Megaphone } from 'lucide-react';
+import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink, CheckCircle, TrendingUp, Megaphone, Heart, ArrowUpDown, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useBookmarks } from '../hooks/useBookmarks';
 
 export default function Home() {
   const [businesses, setBusinesses] = useState<BusinessListing[]>([]);
@@ -16,7 +17,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('Gasabo');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'featured' | 'rating' | 'popular' | 'newest'>('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const { bookmarkedIds, toggleBookmark } = useBookmarks();
   const [mapCenter, setMapCenter] = useState<[number, number]>([-1.9, 30.1]);
   const [mapZoom, setMapZoom] = useState(13);
 
@@ -59,13 +63,25 @@ export default function Home() {
       const snapshot = await getDocs(q);
       const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing));
       
-      // Sort: Featured first, then Standard, then Free
-      const sortedResults = results.sort((a, b) => {
-        const planOrder = { featured: 0, standard: 1, free: 2 };
-        return planOrder[a.plan] - planOrder[b.plan];
+      // Filter by Price if selected
+      let processedResults = results;
+      if (selectedPrice) {
+        processedResults = processedResults.filter(b => b.priceRange === selectedPrice);
+      }
+
+      // Sort logic
+      processedResults = processedResults.sort((a, b) => {
+        if (sortBy === 'featured') {
+          const planOrder = { featured: 0, standard: 1, free: 2 };
+          return planOrder[a.plan] - planOrder[b.plan];
+        }
+        if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+        if (sortBy === 'popular') return (b.views || 0) - (a.views || 0);
+        if (sortBy === 'newest') return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        return 0;
       });
 
-      setBusinesses(sortedResults);
+      setBusinesses(processedResults);
       
       // Trigger a popup when results are loaded (20% chance)
       if (Math.random() < 0.2) {
@@ -201,6 +217,21 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
+
+                <div>
+                  <label className="text-xs uppercase font-bold text-stone-400 tracking-widest block mb-3">Price Range</label>
+                  <div className="flex gap-2">
+                    {['1', '2', '3'].map(p => (
+                      <button 
+                        key={p}
+                        onClick={() => setSelectedPrice(selectedPrice === p ? null : p)}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${selectedPrice === p ? 'bg-emerald-600 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                      >
+                        {Array(parseInt(p)).fill('$').join('')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -228,26 +259,42 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* View Switcher */}
-            <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-lg border border-stone-100">
-              <div className="flex items-center gap-1">
+            {/* View Switcher & Sorting */}
+            <div className="flex flex-col md:flex-row items-center justify-between bg-white p-2 md:p-3 rounded-[1.5rem] md:rounded-[2rem] shadow-lg border border-stone-100 gap-4">
+              <div className="flex items-center gap-1 w-full md:w-auto">
                 <button 
                   onClick={() => setViewMode('grid')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-50'}`}
+                  className={`flex-grow md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-50'}`}
                 >
                   <Grid size={16} />
                   <span>Grid</span>
                 </button>
                 <button 
                   onClick={() => setViewMode('map')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === 'map' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-50'}`}
+                  className={`flex-grow md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'map' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-50'}`}
                 >
                   <MapIcon size={16} />
                   <span>Map</span>
                 </button>
               </div>
-              <div className="px-4 text-xs font-medium text-stone-400">
-                Showing {filteredBusinesses.length} businesses in {selectedCity} District
+
+              <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                <div className="flex items-center gap-2 bg-stone-50 px-4 py-2 rounded-xl border border-stone-100">
+                  <ArrowUpDown size={14} className="text-stone-400" />
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="bg-transparent border-none text-xs font-bold text-stone-600 focus:ring-0 cursor-pointer uppercase tracking-wider"
+                  >
+                    <option value="featured">Featured First</option>
+                    <option value="rating">Top Rated</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="newest">Recently Added</option>
+                  </select>
+                </div>
+                <div className="hidden xl:block px-4 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                  {filteredBusinesses.length} results
+                </div>
               </div>
             </div>
 
@@ -308,6 +355,20 @@ export default function Home() {
                                 <span className="text-[9px] font-black uppercase tracking-tighter">Verified</span>
                               </div>
                             )}
+                            <button 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleBookmark(item.data.id);
+                              }}
+                              className={`absolute bottom-4 right-4 p-2.5 rounded-full backdrop-blur-md transition-all shadow-lg border ${
+                                bookmarkedIds.includes(item.data.id) 
+                                  ? 'bg-rose-500 text-white border-rose-400 scale-110' 
+                                  : 'bg-white/80 text-stone-400 border-white/50 hover:text-rose-500 hover:bg-white'
+                              }`}
+                            >
+                              <Heart size={16} fill={bookmarkedIds.includes(item.data.id) ? "currentColor" : "none"} />
+                            </button>
                           </div>
                           
                           <div className="p-6 flex flex-col flex-grow">
@@ -318,11 +379,18 @@ export default function Home() {
                                 <span className="text-xs font-bold">{item.data.rating || 'New'}</span>
                               </div>
                             </div>
-                            {(item.data.verified || item.data.plan !== 'free') && (
-                              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                <CheckCircle size={10} /> Certified Trusted Business
-                              </p>
-                            )}
+                            <div className="flex items-center gap-4 mb-2">
+                              {(item.data.verified || item.data.plan !== 'free') && (
+                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                                  <CheckCircle size={10} /> Certified Trusted
+                                </p>
+                              )}
+                              {item.data.priceRange && (
+                                <span className="text-[10px] font-bold text-stone-400 tracking-widest">
+                                  {Array(parseInt(item.data.priceRange)).fill('$').join('')}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-stone-500 mb-4 line-clamp-2 leading-relaxed">{item.data.description}</p>
                             
                             <div className="mt-auto pt-4 border-t border-stone-50 flex items-center justify-between">

@@ -17,6 +17,9 @@ service cloud.firestore {
     //
     // Collection: reviews
     // Fields: businessId, userId, userName, rating, content, createdAt
+    //
+    // Collection: bookmarks
+    // Fields: userId, businessId, createdAt
 
     // ===============================================================
     // Helper Functions
@@ -65,6 +68,7 @@ service cloud.firestore {
              data.ownerUid is string &&
              data.status in ['pending', 'active', 'rejected'] &&
              (!('plan' in data) || data.plan in ['free', 'standard', 'featured']) &&
+             (!('priceRange' in data) || data.priceRange in ['1', '2', '3']) &&
              (!('views' in data) || data.views is number) &&
              (!('mapClicks' in data) || data.mapClicks is number) &&
              (!('reviewCount' in data) || data.reviewCount is number) &&
@@ -93,6 +97,12 @@ service cloud.firestore {
              data.userName is string && data.userName.size() < 100 &&
              data.businessId is string &&
              data.userId is string;
+    }
+
+    function isValidBookmark(data) {
+      return data.keys().hasAll(['userId', 'businessId', 'createdAt']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.businessId is string;
     }
 
     // ===============================================================
@@ -136,6 +146,11 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidReview(request.resource.data) && request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() && isValidReview(request.resource.data) && (resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    match /bookmarks/{bookmarkId} {
+      allow read, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidBookmark(request.resource.data);
     }
 
     match /email_logs/{logId} {

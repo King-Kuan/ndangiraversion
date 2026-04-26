@@ -68,6 +68,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["businessId", "userId", "rating", "content"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "User saved business",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId"]
     }
   },
   "firestore": {
@@ -86,6 +97,10 @@
     "/reviews/{reviewId}": {
       "schema": "Review",
       "description": "Business reviews"
+    },
+    "/bookmarks/{bookmarkId}": {
+      "schema": "Bookmark",
+      "description": "User bookmarks"
     }
   }
 }

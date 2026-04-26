@@ -35,6 +35,7 @@ export interface BusinessListing {
   mapClicks: number;
   views: number;
   verified: boolean;
+  priceRange?: '1' | '2' | '3'; // 1: $, 2: $$, 3: $$$
   approvalEmailSent?: boolean;
   expiryDate?: any;
   createdAt: any;

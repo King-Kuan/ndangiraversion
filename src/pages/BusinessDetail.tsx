@@ -5,9 +5,10 @@ import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { BusinessListing, Review, PalaceAd } from '../types';
 import MapComponent from '../components/MapComponent';
 import { AdCard } from '../components/AdComponents';
-import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye, Share2, Check, Megaphone } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye, Share2, Check, Megaphone, Heart } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBookmarks } from '../hooks/useBookmarks';
 
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ export default function BusinessDetail() {
   const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
+  const { bookmarkedIds, toggleBookmark } = useBookmarks();
   const [newReview, setNewReview] = useState({ content: '', rating: 5 });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
@@ -238,6 +240,18 @@ export default function BusinessDetail() {
                   <Navigation size={20} className="rotate-45" />
                   <span>Get Directions</span>
                 </a>
+
+                <button 
+                  onClick={() => toggleBookmark(business.id)}
+                  className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-95 text-sm md:text-base border ${
+                    bookmarkedIds.includes(business.id)
+                      ? 'bg-rose-500 text-white border-rose-400'
+                      : 'bg-white text-stone-900 border-stone-200 hover:bg-stone-50'
+                  }`}
+                >
+                  <Heart size={20} fill={bookmarkedIds.includes(business.id) ? "currentColor" : "none"} />
+                  <span>{bookmarkedIds.includes(business.id) ? 'Saved' : 'Save'}</span>
+                </button>
               </div>
 
               <div className="prose prose-stone max-w-none">

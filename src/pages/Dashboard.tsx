@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimestamp, documentId } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { BusinessListing, PalaceAd, AdPlacement, BusinessPlan } from '../types';
@@ -26,7 +26,8 @@ import {
   MapPin,
   X,
   Image as ImageIcon,
-  ExternalLink as LinkIcon
+  ExternalLink as LinkIcon,
+  Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -34,7 +35,9 @@ export default function Dashboard() {
   const [user, loadingAuth] = useAuthState(auth);
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<BusinessListing[]>([]);
+  const [savedBusinesses, setSavedBusinesses] = useState<BusinessListing[]>([]);
   const [activeBusinessIndex, setActiveBusinessIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<'listings' | 'saved'>('listings');
   const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +66,20 @@ export default function Dashboard() {
       const adsQuery = query(collection(db, 'palaceads'), where('ownerUid', '==', user.uid));
       const adsSnapshot = await getDocs(adsQuery);
       setAds(adsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
+
+      // Fetch Bookmarks
+      const bookmarksQuery = query(collection(db, 'bookmarks'), where('userId', '==', user.uid));
+      const bookmarksSnap = await getDocs(bookmarksQuery);
+      const bookmarkedIds = bookmarksSnap.docs.map(doc => doc.data().businessId);
+      
+      if (bookmarkedIds.length > 0) {
+        // Firestore where in limit is 10, but let's just do 30 for now or chunk if needed
+        const savedQuery = query(collection(db, 'businesses'), where(documentId(), 'in', bookmarkedIds.slice(0, 10)));
+        const savedSnap = await getDocs(savedQuery);
+        setSavedBusinesses(savedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing)));
+      } else {
+        setSavedBusinesses([]);
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'dashboard/data');
     } finally {
@@ -223,7 +240,7 @@ export default function Dashboard() {
         {[
           { label: 'Total Views', value: business?.views || 0, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
           { label: 'Map Clicks', value: business?.mapClicks || 0, icon: Navigation, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-          { label: 'Ratings', value: business?.rating || 0, icon: StarIcon, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+          { label: 'Saved Spots', value: savedBusinesses.length, icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50' },
           { label: 'Total Ads', value: ads.length, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
         ].map((stat, i) => (
           <motion.div 
@@ -245,20 +262,38 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Listing View */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
-            <div className="p-8 md:p-10">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
-                  <Building2 className="text-emerald-600" />
-                  Your Listing
-                </h2>
-                {business && (
-                  <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${statusBg[business.status]}`}>
-                    {statusIcons[business.status]}
-                    {business.status}
-                  </div>
-                )}
-              </div>
+          <div className="bg-white rounded-3xl shadow-lg border border-stone-100 overflow-hidden flex p-1 mb-8">
+            <button 
+              onClick={() => setActiveTab('listings')}
+              className={`flex-grow flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'listings' ? 'bg-stone-900 text-white' : 'text-stone-400 hover:bg-stone-50'}`}
+            >
+              <Building2 size={16} />
+              My Listings
+            </button>
+            <button 
+              onClick={() => setActiveTab('saved')}
+              className={`flex-grow flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'saved' ? 'bg-stone-900 text-white' : 'text-stone-400 hover:bg-stone-50'}`}
+            >
+              <Heart size={16} />
+              Saved Spots
+            </button>
+          </div>
+
+          {activeTab === 'listings' ? (
+            <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
+              <div className="p-8 md:p-10">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                    <Building2 className="text-emerald-600" />
+                    Listings Management
+                  </h2>
+                  {business && (
+                    <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${statusBg[business.status]}`}>
+                      {statusIcons[business.status]}
+                      {business.status}
+                    </div>
+                  )}
+                </div>
 
               {business ? (
                 <div className="flex flex-col md:flex-row gap-8">
@@ -319,16 +354,49 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            {business && business.status === 'pending' && (
-              <div className="bg-yellow-50 border-t border-yellow-100 p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                <Clock className="text-yellow-600 shrink-0" size={24} />
-                <div className="flex-grow">
-                  <h4 className="font-bold text-yellow-900 text-sm">Under Review</h4>
-                  <p className="text-xs text-yellow-700 font-medium">An admin is verifying your details. This usually takes 24-48 hours.</p>
+              {business && business.status === 'pending' && (
+                <div className="bg-yellow-50 border-t border-yellow-100 p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                  <Clock className="text-yellow-600 shrink-0" size={24} />
+                  <div className="flex-grow">
+                    <h4 className="font-bold text-yellow-900 text-sm">Under Review</h4>
+                    <p className="text-xs text-yellow-700 font-medium">An admin is verifying your details. This usually takes 24-48 hours.</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 p-8 md:p-10">
+               <h2 className="text-2xl font-black tracking-tight flex items-center gap-3 mb-8">
+                  <Heart className="text-rose-500" />
+                  Saved Spots
+                </h2>
+                {savedBusinesses.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {savedBusinesses.map(sb => (
+                      <Link 
+                        to={`/business/${sb.id}`} 
+                        key={sb.id}
+                        className="group flex flex-col bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 hover:shadow-lg transition-all"
+                      >
+                        <div className="h-32 bg-stone-200">
+                           {sb.photos?.[0] && <img src={sb.photos[0]} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                        </div>
+                        <div className="p-4">
+                          <h4 className="font-bold text-stone-900 group-hover:text-emerald-600 transition-colors">{sb.name}</h4>
+                          <p className="text-[10px] uppercase font-black text-stone-400 mt-1">{sb.city} • {sb.category}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 bg-stone-50 rounded-3xl border border-dashed border-stone-200">
+                    <Heart className="mx-auto text-stone-200 mb-4" size={48} />
+                    <p className="text-stone-400 text-sm">No saved businesses yet.</p>
+                    <Link to="/" className="text-emerald-600 text-xs font-bold uppercase tracking-widest mt-4 inline-block hover:underline">Explore Local Spots ➔</Link>
+                  </div>
+                )}
+            </div>
+          )}
 
           {/* PalaceAds Management */}
           <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 p-8 md:p-10">
