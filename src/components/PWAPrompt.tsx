@@ -13,9 +13,16 @@ export default function PWAPrompt() {
     const handler = (e: any) => {
       e.preventDefault();
       setInstallPrompt(e);
-      // Show prompt after 5 seconds if not already installed
-      setTimeout(() => setShowPrompt(true), 5000);
+      // Show prompt after 3 seconds if not already installed
+      setTimeout(() => setShowPrompt(true), 3000);
     };
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isIOS && !isStandalone) {
+      setTimeout(() => setShowPrompt(true), 3000);
+    }
 
     window.addEventListener('beforeinstallprompt', handler);
 
@@ -23,7 +30,13 @@ export default function PWAPrompt() {
   }, []);
 
   const handleInstall = async () => {
-    if (!installPrompt) return;
+    if (!installPrompt) {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIOS) {
+        alert('To install: tap the Share icon and then "Add to Home Screen"');
+      }
+      return;
+    }
     installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
     if (outcome === 'accepted') {
@@ -68,13 +81,13 @@ export default function PWAPrompt() {
               </p>
 
               <div className="flex flex-col gap-3">
-                {showPrompt && installPrompt && (
+                {showPrompt && (
                   <button 
                     onClick={handleInstall}
                     className="w-full bg-emerald-600 text-white py-3 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-emerald-500 transition-all shadow-lg active:scale-95"
                   >
                     <Download size={16} />
-                    Install App
+                    {installPrompt ? 'Install App' : 'How to Install'}
                   </button>
                 )}
                 {notificationPermission === 'default' && (
