@@ -25,11 +25,13 @@ export default function Home() {
       const q = query(
         collection(db, 'palaceads'),
         where('placement', '==', 'card'),
-        where('status', '==', 'active'),
-        where('isVerified', '==', true)
+        where('status', '==', 'active')
       );
       const snapshot = await getDocs(q);
-      setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
+      setAds(snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd))
+        .filter(ad => ad.isVerified === true)
+      );
     } catch (err) {
       console.warn('Ads fetch failed', err);
     }
@@ -68,8 +70,8 @@ export default function Home() {
 
       setBusinesses(sortedResults);
       
-      // Trigger a rare popup when results are loaded
-      if (Math.random() < 0.15) {
+      // Trigger a popup when results are loaded (20% chance)
+      if (Math.random() < 0.2) {
         window.dispatchEvent(new CustomEvent('palace-ad-trigger', { detail: { type: 'popup' } }));
       }
     } catch (error) {
@@ -85,7 +87,7 @@ export default function Home() {
       if (Math.random() < 0.1) {
         window.dispatchEvent(new CustomEvent('palace-ad-trigger', { detail: { type: 'redirect' } }));
       }
-    }, 45000); // 45 seconds of browsing
+    }, 30000); // 30 seconds of browsing
 
     return () => clearTimeout(timer);
   }, [selectedCity, selectedCategory]);
@@ -100,16 +102,17 @@ export default function Home() {
     b.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-    const interMode = viewMode === 'grid';
     const interspersedItems: any[] = [];
-    if (interMode) {
+    if (viewMode === 'grid') {
       let adIdx = 0;
-      const adFreq = 3;
       
       if (filteredBusinesses.length > 0) {
         filteredBusinesses.forEach((b, i) => {
           interspersedItems.push({ type: 'business', data: b });
-          if ((i + 1) % adFreq === 0 && ads.length > 0) {
+          
+          // Ad after 1st business, then every 3
+          const shouldShowAd = ads.length > 0 && (i === 0 || (i > 0 && (i + 1) % 3 === 0));
+          if (shouldShowAd) {
             interspersedItems.push({ type: 'ad', data: ads[adIdx % ads.length] });
             adIdx++;
           }

@@ -142,8 +142,8 @@ export const PalacePopup = () => {
 
   useEffect(() => {
     const fetchPopup = async () => {
-      // Very small chance for random global popup (now 10% instead of 40%)
-      if (Math.random() > 0.1) return;
+      // Small chance for random global popup (now 15%)
+      if (Math.random() > 0.15) return;
       
       try {
         const q = query(
@@ -158,11 +158,11 @@ export const PalacePopup = () => {
           const docData = snapshot.docs[randomIndex];
           setAd({ id: docData.id, ...docData.data() } as PalaceAd);
           
-          // Show after 10 seconds delay globally
+          // Show after 8 seconds delay globally
           setTimeout(() => {
             setIsOpen(true);
             trackAdView(docData.id);
-          }, 10000);
+          }, 8000);
         }
       } catch (error) {
         console.error('Popup fetch failed', error);
@@ -269,8 +269,8 @@ export const RedirectInterstitial = () => {
 
   useEffect(() => {
     const fetchRedirect = async () => {
-      // Extremely low chance for random redirect (now 2% instead of 5%)
-      if (Math.random() > 0.02) return;
+      // Chance for random redirect (now 5%)
+      if (Math.random() > 0.05) return;
 
       try {
         const q = query(

@@ -64,11 +64,13 @@ export default function BusinessDetail() {
           collection(db, 'palaceads'),
           where('placement', '==', 'card'),
           where('status', '==', 'active'),
-          where('isVerified', '==', true),
-          limit(2)
+          limit(5)
         );
         const adsSnap = await getDocs(adsQ);
-        setAds(adsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
+        setAds(adsSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd))
+          .filter(ad => ad.isVerified === true)
+        );
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `businesses/${id}`);
@@ -482,18 +484,36 @@ export default function BusinessDetail() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {related.length > 0 ? (
-            related.map(b => (
+          {(() => {
+            const items: any[] = [];
+            const maxLength = Math.max(related.length, ads.length);
+            
+            // Intersperse: 2 businesses, then 1 ad
+            for (let i = 0; i < maxLength; i++) {
+              if (related[i]) items.push({ type: 'business', data: related[i] });
+              if (related[i + 1]) {
+                items.push({ type: 'business', data: related[i + 1] });
+                i++; // Skip next since we added it
+              }
+              const adIdx = Math.floor(items.length / 3);
+              if (ads[adIdx]) items.push({ type: 'ad', data: ads[adIdx] });
+              
+              if (items.length >= 6) break; // Keep it clean
+            }
+
+            if (items.length === 0) return <div className="col-span-full text-stone-300 italic text-center py-12">No other suggestions yet.</div>;
+
+            return items.map((item, idx) => item.type === 'business' ? (
               <Link 
-                to={`/business/${b.id}`} 
-                key={b.id}
+                to={`/business/${item.data.id}`} 
+                key={`${item.data.id}-${idx}`}
                 className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-stone-100 transition-all group flex flex-col"
               >
                 <div className="relative h-48 bg-stone-200">
-                  {b.photos?.[0] ? (
+                  {item.data.photos?.[0] ? (
                     <img 
-                      src={b.photos[0]} 
-                      alt={b.name} 
+                      src={item.data.photos[0]} 
+                      alt={item.data.name} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
                     />
@@ -503,24 +523,18 @@ export default function BusinessDetail() {
                     </div>
                   )}
                   <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-sm">
-                    {b.category}
+                    {item.data.category}
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-700 transition-colors line-clamp-1">{b.name}</h3>
-                  <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed">{b.description}</p>
+                  <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-700 transition-colors line-clamp-1">{item.data.name}</h3>
+                  <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed">{item.data.description}</p>
                 </div>
               </Link>
-            ))
-          ) : (
-            // If no related, show more ads or placeholder
-            ads.length === 0 && <div className="text-stone-300 italic text-sm">No other suggestions yet.</div>
-          )}
-          
-          {/* Always show up to 2 ads if available */}
-          {ads.map(ad => (
-            <AdCard key={ad.id} ad={ad as PalaceAd} />
-          ))}
+            ) : (
+              <AdCard key={`${item.data.id}-${idx}`} ad={item.data} />
+            ));
+          })()}
         </div>
       </div>
     </section>
