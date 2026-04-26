@@ -28,6 +28,7 @@ export default function Register() {
     businessEmail: '',
     businessWebsite: '',
     businessAddress: '',
+    priceRange: '1',
     plan: 'free',
     lat: -1.9,
     lng: 30.1,
@@ -93,6 +94,7 @@ export default function Register() {
         phone: formData.businessPhone,
         email: formData.businessEmail || formData.email,
         website: formData.businessWebsite,
+        priceRange: formData.priceRange,
         lat: formData.lat,
         lng: formData.lng,
         status: 'pending',
@@ -310,7 +312,7 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Website (Optional)</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Target URL/Website (Optional)</label>
                   <div className="flex items-center bg-stone-50 border-stone-100 rounded-2xl px-6 py-4 gap-4">
                     <Globe className="text-stone-300" size={20} />
                     <input 
@@ -321,6 +323,25 @@ export default function Register() {
                       onChange={(e) => handleInputChange('businessWebsite', e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Price Range</label>
+                  <div className="flex gap-2">
+                    {['1', '2', '3'].map((p) => (
+                      <button 
+                        key={p}
+                        type="button"
+                        onClick={() => handleInputChange('priceRange', p)}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${
+                          formData.priceRange === p ? 'bg-emerald-600 text-white shadow-lg' : 'bg-stone-50 text-stone-400 border border-stone-100'
+                        }`}
+                      >
+                        {Array(parseInt(p)).fill('$').join('')}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-stone-400 mt-2 font-medium">Estimate how affordable your services are ($ to $$$)</p>
                 </div>
 
                 <div className="md:col-span-2 space-y-4">

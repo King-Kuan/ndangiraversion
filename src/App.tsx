@@ -7,11 +7,13 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import BusinessSettings from './pages/BusinessSettings';
 import AdminDashboard from './pages/AdminDashboard';
 import Pricing from './pages/Pricing';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import { PalacePopup, RedirectInterstitial } from './components/AdComponents';
+import PWAPrompt from './components/PWAPrompt';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -27,6 +29,7 @@ export default function App() {
       <ScrollToTop />
       <PalacePopup />
       <RedirectInterstitial />
+      <PWAPrompt />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -35,6 +38,7 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/settings/:id" element={<BusinessSettings />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

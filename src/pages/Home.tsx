@@ -66,7 +66,7 @@ export default function Home() {
       // Filter by Price if selected
       let processedResults = results;
       if (selectedPrice) {
-        processedResults = processedResults.filter(b => b.priceRange === selectedPrice);
+        processedResults = processedResults.filter(b => (b.priceRange || '1') === selectedPrice);
       }
 
       // Sort logic

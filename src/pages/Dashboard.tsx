@@ -227,7 +227,7 @@ export default function Dashboard() {
               <ArrowUpRight size={18} />
               Upgrade Plan
             </Link>
-            <Link to="/dashboard/settings" className="bg-white border border-stone-200 text-stone-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
+            <Link to={`/dashboard/settings/${business.id}`} className="bg-white border border-stone-200 text-stone-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
               <Settings size={18} />
               Manage Listing
             </Link>
