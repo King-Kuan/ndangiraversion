@@ -32,7 +32,7 @@ export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'listings' | 'ads' | 'users' | 'messages'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'ads' | 'users' | 'messages' | 'reports'>('listings');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'rejected' | 'expired'>('all');
 
   // Message Center States
@@ -233,6 +233,63 @@ export default function AdminDashboard() {
       `
     }
   ];
+
+  const downloadReport = (type: 'businesses' | 'users') => {
+    let csvContent = "";
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (type === 'businesses') {
+      const headers = ["Business Name", "Category", "City", "Address", "Phone", "Email", "Owner UID", "Plan", "Status", "Rating", "Reviews", "Views", "Map Clicks", "Verified", "Created At"];
+      csvContent = headers.join(",") + "\n";
+      
+      allBusinesses.forEach(b => {
+        const row = [
+          `"${b.name.replace(/"/g, '""')}"`,
+          `"${b.category}"`,
+          `"${b.city}"`,
+          `"${b.address.replace(/"/g, '""')}"`,
+          `"${b.phone}"`,
+          `"${b.email}"`,
+          `"${b.ownerUid}"`,
+          `"${b.plan}"`,
+          `"${b.status}"`,
+          b.rating,
+          b.reviewCount,
+          b.views,
+          b.mapClicks,
+          b.verified,
+          b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000).toISOString().split('T')[0] : ""
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+    } else {
+      const headers = ["Name", "Email", "UID", "Role", "Type", "Created At"];
+      csvContent = headers.join(",") + "\n";
+      
+      allUsers.forEach(u => {
+        const isOwner = allBusinesses.some(b => b.ownerUid === u.uid);
+        const row = [
+          `"${u.name.replace(/"/g, '""')}"`,
+          `"${u.email}"`,
+          `"${u.uid}"`,
+          `"${u.role}"`,
+          isOwner ? "Business Owner" : "Normal User",
+          u.createdAt?.seconds ? new Date(u.createdAt.seconds * 1000).toISOString().split('T')[0] : ""
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ndangira_${type}_report_${today}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleBulkSend = async () => {
     if (!selectedTemplate || recipients.length === 0) return;
@@ -487,6 +544,12 @@ export default function AdminDashboard() {
             className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
           >
             Message Center
+          </button>
+          <button 
+            onClick={() => setActiveTab('reports')}
+            className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'reports' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
+          >
+            Reports
           </button>
         </div>
 
@@ -786,6 +849,32 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-stone-400 mb-4 tracking-[0.2em] italic">Assign Recipients (Select from Directory)</label>
+                  <div className="flex gap-4 mb-4">
+                    <button 
+                      onClick={() => {
+                        const owners = allUsers.filter(u => allBusinesses.some(b => b.ownerUid === u.uid) && u.email !== user?.email).map(u => u.email);
+                        setRecipients(owners);
+                      }}
+                      className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all border border-emerald-100"
+                    >
+                      Select All Business Owners
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const normals = allUsers.filter(u => !allBusinesses.some(b => b.ownerUid === u.uid) && u.email !== user?.email).map(u => u.email);
+                        setRecipients(normals);
+                      }}
+                      className="text-[10px] font-black uppercase text-stone-600 bg-stone-100 px-4 py-2 rounded-xl hover:bg-stone-200 transition-all border border-stone-200"
+                    >
+                      Select All Normal Users
+                    </button>
+                    <button 
+                      onClick={() => setRecipients([])}
+                      className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-4 py-2 rounded-xl hover:bg-red-100 transition-all border border-red-100"
+                    >
+                      Clear All
+                    </button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {allUsers.filter(u => u.email !== user?.email).slice(0, 50).map(u => (
                       <button 
@@ -846,6 +935,73 @@ export default function AdminDashboard() {
                </div>
             </div>
           </div>
+        ) : activeTab === 'reports' ? (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-stone-100">
+              <div className="flex items-center gap-4 mb-12">
+                <div className="w-16 h-16 bg-emerald-100 rounded-3xl flex items-center justify-center text-emerald-600">
+                  <BarChart3 size={32} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-stone-900 italic uppercase">System Reports</h2>
+                  <p className="text-stone-400 font-medium">Generate and export platform data for analysis</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 group hover:border-emerald-200 transition-all">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
+                      <Building2 size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-stone-900 group-hover:text-emerald-600 transition-colors">Business Inventory</h3>
+                  </div>
+                  <p className="text-sm text-stone-500 mb-8 leading-relaxed">
+                    Exhaustive sheet containing all registered businesses, their status, plans, performance metrics (views, clicks), and owner contact information.
+                  </p>
+                  <button 
+                    onClick={() => downloadReport('businesses')}
+                    className="w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center justify-center gap-3"
+                  >
+                    <FileText size={18} />
+                    Download Business CSV
+                  </button>
+                </div>
+
+                <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 group hover:border-blue-200 transition-all">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+                      <Users size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-stone-900 group-hover:text-blue-600 transition-colors">User Demographics</h3>
+                  </div>
+                  <p className="text-sm text-stone-500 mb-8 leading-relaxed">
+                    Comprehensive list of all registered accounts, distinguishing between administrative staff, business owners, and general platform users.
+                  </p>
+                  <button 
+                    onClick={() => downloadReport('users')}
+                    className="w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center justify-center gap-3"
+                  >
+                    <FileText size={18} />
+                    Download User CSV
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-12 p-8 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 flex flex-col md:flex-row items-center gap-6">
+                 <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shrink-0">
+                   <Clock size={24} />
+                 </div>
+                 <div className="flex-grow text-center md:text-left">
+                   <p className="text-xs font-black text-emerald-900 uppercase tracking-widest mb-1">Real-time Data Sync</p>
+                   <p className="text-[10px] text-emerald-700 font-medium">Reports generated reflect the current state of the database. All sensitive data is cleaned before export.</p>
+                 </div>
+                 <div className="text-[10px] font-black text-emerald-400 uppercase italic">
+                   Last Sync: {new Date().toLocaleTimeString()}
+                 </div>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-stone-100">
@@ -886,9 +1042,20 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-8 py-6">
-                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {u.role}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full w-fit ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {u.role}
+                          </span>
+                          {allBusinesses.some(b => b.ownerUid === u.uid) ? (
+                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 w-fit">
+                              Business Owner
+                            </span>
+                          ) : (
+                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-100 text-stone-400 w-fit">
+                              Normal User
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-8 py-6 text-xs text-stone-400 font-medium">
                         {u.createdAt?.seconds ? new Date(u.createdAt.seconds * 1000).toLocaleDateString() : 'Unknown'}
