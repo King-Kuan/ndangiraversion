@@ -66,7 +66,10 @@ export default function Home() {
       // Filter by Price if selected
       let processedResults = results;
       if (selectedPrice) {
-        processedResults = processedResults.filter(b => (b.priceRange || '1') === selectedPrice);
+        processedResults = processedResults.filter(b => {
+          const price = b.priceRange || '1';
+          return price === selectedPrice;
+        });
       }
 
       // Sort logic
@@ -316,7 +319,7 @@ export default function Home() {
                       interspersedItems.map((item, idx) => item.type === 'business' ? (
                         <Link 
                           to={`/business/${item.data.id}`} 
-                          key={item.data.id}
+                          key={`biz-${item.data.id}`}
                           onClick={() => {
                             // 5% chance to trigger a popup when viewing a business
                             if (Math.random() < 0.05) {
@@ -403,7 +406,7 @@ export default function Home() {
                           </div>
                         </Link>
                       ) : (
-                        <AdCard key={item.data.id} ad={item.data as PalaceAd} />
+                        <AdCard key={`ad-${item.data.id}`} ad={item.data as PalaceAd} />
                       ))
                     ) : (
                       <div className="col-span-full flex flex-col items-center justify-center bg-white rounded-3xl p-20 text-center border border-dashed border-stone-300">
