@@ -1,8 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { LogIn, LogOut, LayoutDashboard, User, Search, MapPin, PlusCircle, MessageSquare } from 'lucide-react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { LogIn, LogOut, LayoutDashboard, User, Search, MapPin, PlusCircle, MessageSquare, Bell } from 'lucide-react';
 
 import { GlobalRibbon } from './AdComponents';
 
@@ -12,7 +13,29 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [user] = useAuthState(auth);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      setHasNewMessages(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'chats'),
+      where('participants', 'array-contains', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      // If any chat has documents, and for now just showing a badge if there's any update
+      if (!snapshot.empty) {
+        setHasNewMessages(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const handleLogout = () => {
     auth.signOut();
@@ -51,10 +74,14 @@ export default function Layout({ children }: LayoutProps) {
                 )}
                 <Link 
                   to="/messages" 
-                  className="hidden md:flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-full transition-colors"
+                  className="hidden md:flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-full transition-colors relative"
+                  onClick={() => setHasNewMessages(false)}
                 >
                   <MessageSquare size={18} />
                   <span>Messages</span>
+                  {hasNewMessages && (
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                  )}
                 </Link>
                 <Link 
                   to="/dashboard" 

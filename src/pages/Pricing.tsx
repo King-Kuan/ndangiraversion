@@ -66,7 +66,7 @@ export default function Pricing() {
               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-2">High Visibility</span>
               <h3 className="text-3xl font-black text-stone-900 mb-4 uppercase italic">Redirect Interstitial</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-stone-900">5,000 RWF</span>
+                <span className="text-4xl font-black text-stone-900">10,000 RWF</span>
                 <span className="text-stone-400 font-bold text-sm">/per campaign</span>
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function Pricing() {
               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-2">Engagement Focus</span>
               <h3 className="text-3xl font-black text-stone-900 mb-4 uppercase italic">Palace Pop-Up</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-stone-900">2,500 RWF</span>
+                <span className="text-4xl font-black text-stone-900">30,000 RWF</span>
                 <span className="text-stone-400 font-bold text-sm">/week</span>
               </div>
             </div>
