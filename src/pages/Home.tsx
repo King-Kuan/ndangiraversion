@@ -25,7 +25,8 @@ export default function Home() {
       const q = query(
         collection(db, 'palaceads'),
         where('placement', '==', 'card'),
-        where('status', '==', 'active')
+        where('status', '==', 'active'),
+        where('isVerified', '==', true)
       );
       const snapshot = await getDocs(q);
       setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));

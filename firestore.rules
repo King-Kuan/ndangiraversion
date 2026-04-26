@@ -68,17 +68,20 @@ service cloud.firestore {
              (!('views' in data) || data.views is number) &&
              (!('mapClicks' in data) || data.mapClicks is number) &&
              (!('reviewCount' in data) || data.reviewCount is number) &&
-             (!('rating' in data) || data.rating is number);
+             (!('rating' in data) || data.rating is number) &&
+             (!('expiryDate' in data) || data.expiryDate is timestamp);
     }
 
     function isValidAd(data) {
       return data.keys().hasAll(['title', 'ownerUid', 'placement', 'status']) &&
              data.title is string && data.title.size() > 0 && data.title.size() < 150 &&
-             data.placement in ['ribbon', 'popup', 'redirect'] &&
+             data.placement in ['ribbon', 'popup', 'redirect', 'card'] &&
              data.status in ['pending', 'active', 'expired'] &&
              (!('expiryDate' in data) || data.expiryDate is timestamp) &&
              (!('businessName' in data) || (data.businessName is string && data.businessName.size() < 150)) &&
              (!('businessPhone' in data) || (data.businessPhone is string && data.businessPhone.size() < 50)) &&
+             (!('businessId' in data) || data.businessId is string || data.businessId == null) &&
+             (!('isVerified' in data) || data.isVerified is bool) &&
              (!('views' in data) || data.views is number) &&
              (!('clicks' in data) || data.clicks is number);
     }
@@ -107,6 +110,7 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidBusiness(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
       allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'mapClicks', 'reviewCount', 'rating'])) || (
         isAuthenticated() && isValidBusiness(request.resource.data) && (
+          (request.auth.uid == resource.data.ownerUid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expiryDate', 'status'])) || 
           (request.auth.uid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
           isAdmin()
         )
@@ -119,6 +123,7 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidAd(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
       allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks'])) || (
         isAuthenticated() && isValidAd(request.resource.data) && (
+          (request.auth.uid == resource.data.ownerUid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expiryDate', 'status'])) || 
           (request.auth.uid == resource.data.ownerUid && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
           isAdmin()
         )

@@ -50,8 +50,10 @@ export interface PalaceAd {
   city: string;
   status: AdStatus;
   ownerUid: string;
+  businessId?: string;
   businessName?: string;
   businessPhone?: string;
+  isVerified?: boolean;
   views: number;
   clicks: number;
   expiryDate?: any;

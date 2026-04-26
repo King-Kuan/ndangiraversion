@@ -64,6 +64,7 @@ export default function BusinessDetail() {
           collection(db, 'palaceads'),
           where('placement', '==', 'card'),
           where('status', '==', 'active'),
+          where('isVerified', '==', true),
           limit(2)
         );
         const adsSnap = await getDocs(adsQ);

@@ -82,6 +82,8 @@ export default function Dashboard() {
       const adData = {
         ...newAd,
         ownerUid: user.uid,
+        businessId: business?.id || null,
+        isVerified: business?.verified || false,
         businessName: business?.name || 'Independent',
         businessPhone: business?.phone || '',
         city: business?.city || 'Kigali', // Fallback to Kigali if no business
@@ -106,6 +108,28 @@ export default function Dashboard() {
       try { handleFirestoreError(error, OperationType.CREATE, 'palaceads'); } catch(e) {}
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRenew = async (type: 'business' | 'ad', id: string) => {
+    try {
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      
+      const coll = type === 'business' ? 'businesses' : 'palaceads';
+      await updateDoc(doc(db, coll, id), {
+        expiryDate: thirtyDaysFromNow,
+        status: 'pending' // Re-verify on renewal
+      });
+      
+      if (type === 'business') {
+        setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: 'pending', expiryDate: { seconds: thirtyDaysFromNow.getTime()/1000 } } : b));
+      } else {
+        setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'pending', expiryDate: { seconds: thirtyDaysFromNow.getTime()/1000 } } : a));
+      }
+      alert("Renewal request sent! Your campaign/listing will be active for another 30 days once approved.");
+    } catch (error) {
+       handleFirestoreError(error, OperationType.UPDATE, `${type}/${id}`);
     }
   };
 
@@ -155,6 +179,17 @@ export default function Dashboard() {
           <h1 className="text-4xl font-black text-stone-900 tracking-tight mb-2">Welcome, {user?.displayName}!</h1>
           <p className="text-stone-500 font-medium">Manage your reviews, ads, and business listings in once place.</p>
           
+          {(ads.some(a => a.expiryDate && (a.expiryDate.seconds * 1000 - Date.now()) < 86400000 * 7) || 
+            businesses.some(b => b.expiryDate && (b.expiryDate.seconds * 1000 - Date.now()) < 86400000 * 7)) && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 animate-pulse">
+              <AlertCircle className="text-red-600" size={20} />
+              <p className="text-xs font-bold text-red-900">
+                Action Required: Some of your campaigns or listings are expiring soon. 
+                <span className="block text-[10px] text-red-600 font-medium mt-0.5">Please check your email ({user?.email}) for details and use the "Renew" buttons below.</span>
+              </p>
+            </div>
+          )}
+
           {businesses.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
               {businesses.map((b, idx) => (
@@ -237,9 +272,26 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="flex-grow space-y-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-stone-900 mb-1">{business.name}</h3>
-                      <p className="text-stone-500 text-sm line-clamp-2 leading-relaxed">{business.description}</p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-xl font-bold text-stone-900 mb-1">{business.name}</h3>
+                        <p className="text-stone-500 text-sm line-clamp-2 leading-relaxed">{business.description}</p>
+                      </div>
+                      <div className="text-right">
+                         {business.expiryDate && (
+                           <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                             (business.expiryDate.seconds * 1000 - Date.now()) < 86400000 * 7 ? 'text-red-500' : 'text-stone-400'
+                           }`}>
+                             {Math.max(0, Math.ceil((business.expiryDate.seconds * 1000 - Date.now()) / 86400000))} Days left
+                           </p>
+                         )}
+                         <button 
+                           onClick={() => handleRenew('business', business.id)}
+                           className="text-[10px] bg-stone-100 px-3 py-1 rounded-full font-black uppercase text-stone-600 hover:bg-stone-200"
+                         >
+                           Renew Listing
+                         </button>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-widest text-stone-400">
                       <div className="flex items-center gap-1.5"><MapPin size={14} /> District: {business.city}</div>
@@ -329,9 +381,17 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-                    <button className="text-stone-400 hover:text-stone-900 p-2 rounded-xl transition-colors">
-                      <ArrowUpRight size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleRenew('ad', ad.id)}
+                        className="text-[9px] font-black uppercase tracking-widest text-purple-600 bg-purple-50 px-3 py-1.5 rounded-lg hover:bg-purple-100"
+                      >
+                        Renew
+                      </button>
+                      <button className="text-stone-400 hover:text-stone-900 p-2 rounded-xl transition-colors">
+                        <ArrowUpRight size={20} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
