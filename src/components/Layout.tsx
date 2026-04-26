@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { LogIn, LogOut, LayoutDashboard, User, Search, MapPin, PlusCircle } from 'lucide-react';
+import { LogIn, LogOut, LayoutDashboard, User, Search, MapPin, PlusCircle, MessageSquare } from 'lucide-react';
 
 import { GlobalRibbon } from './AdComponents';
 
@@ -49,6 +49,13 @@ export default function Layout({ children }: LayoutProps) {
                     <span>Admin Panel</span>
                   </Link>
                 )}
+                <Link 
+                  to="/messages" 
+                  className="hidden md:flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-full transition-colors"
+                >
+                  <MessageSquare size={18} />
+                  <span>Messages</span>
+                </Link>
                 <Link 
                   to="/dashboard" 
                   className="hidden md:flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-full transition-colors"

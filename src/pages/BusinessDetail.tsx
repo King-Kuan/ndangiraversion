@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, increment, limit } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { BusinessListing, Review, PalaceAd } from '../types';
@@ -12,6 +12,7 @@ import { useBookmarks } from '../hooks/useBookmarks';
 
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [business, setBusiness] = useState<BusinessListing & { views?: number } | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [related, setRelated] = useState<BusinessListing[]>([]);
@@ -159,6 +160,44 @@ export default function BusinessDetail() {
     }
   };
 
+  const handleStartChat = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (!business) return;
+    
+    // Check if chat exists
+    try {
+      const q = query(
+        collection(db, 'chats'),
+        where('participants', 'array-contains', user.uid),
+        where('businessId', '==', id)
+      );
+      const snap = await getDocs(q);
+      
+      let chatId;
+      if (snap.empty) {
+        // Create new chat
+        const newChat = {
+          participants: [user.uid, business.ownerUid],
+          businessId: id,
+          businessName: business.name,
+          updatedAt: serverTimestamp()
+        };
+        const docRef = await addDoc(collection(db, 'chats'), newChat);
+        chatId = docRef.id;
+      } else {
+        chatId = snap.docs[0].id;
+      }
+      
+      // Dispatch event to open chat overlay
+      window.dispatchEvent(new CustomEvent('open-chat', { detail: { chatId, businessName: business.name } }));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, 'chats');
+    }
+  };
+
   const visiblePhotos = business 
     ? (business.plan === 'free' ? business.photos.slice(0, 1) : business.photos.slice(0, 10))
     : [];
@@ -240,6 +279,28 @@ export default function BusinessDetail() {
                   <Navigation size={20} className="rotate-45" />
                   <span>Get Directions</span>
                 </a>
+
+                {business.ownerUid !== user?.uid && (
+                  <button 
+                    onClick={handleStartChat}
+                    className="flex items-center gap-3 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl active:scale-95 text-sm md:text-base self-start"
+                  >
+                    <MessageSquare size={20} />
+                    <span>Message</span>
+                  </button>
+                )}
+
+                {business.bookingUrl && (
+                  <a 
+                    href={business.bookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-xl active:scale-95 text-sm md:text-base self-start"
+                  >
+                    <CheckCircle size={20} />
+                    <span>Book Now</span>
+                  </a>
+                )}
 
                 <button 
                   onClick={() => toggleBookmark(business.id)}

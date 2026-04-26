@@ -95,11 +95,12 @@ export const GlobalRibbon = () => {
           collection(db, 'palaceads'), 
           where('placement', '==', 'ribbon'),
           where('status', '==', 'active'),
-          limit(1)
+          limit(10)
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-          const docData = snapshot.docs[0];
+          const randomIndex = Math.floor(Math.random() * snapshot.docs.length);
+          const docData = snapshot.docs[randomIndex];
           setAd({ id: docData.id, ...docData.data() } as PalaceAd);
           trackAdView(docData.id);
         }
@@ -277,11 +278,12 @@ export const RedirectInterstitial = () => {
           collection(db, 'palaceads'), 
           where('placement', '==', 'redirect'),
           where('status', '==', 'active'),
-          limit(5)
+          limit(10)
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-          const docData = snapshot.docs[0];
+          const randomIndex = Math.floor(Math.random() * snapshot.docs.length);
+          const docData = snapshot.docs[randomIndex];
           setAd({ id: docData.id, ...docData.data() } as PalaceAd);
           setShow(true);
           trackAdView(docData.id);
@@ -297,11 +299,12 @@ export const RedirectInterstitial = () => {
           collection(db, 'palaceads'), 
           where('placement', '==', 'redirect'),
           where('status', '==', 'active'),
-          limit(5)
+          limit(10)
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-          const docData = snapshot.docs[0];
+          const randomIndex = Math.floor(Math.random() * snapshot.docs.length);
+          const docData = snapshot.docs[randomIndex];
           setAd({ id: docData.id, ...docData.data() } as PalaceAd);
           setShow(true);
           trackAdView(docData.id);

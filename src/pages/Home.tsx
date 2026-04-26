@@ -15,7 +15,7 @@ export default function Home() {
   const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCity, setSelectedCity] = useState('Gasabo');
+  const [selectedCity, setSelectedCity] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'featured' | 'rating' | 'popular' | 'newest'>('featured');
@@ -194,6 +194,7 @@ export default function Home() {
                     value={selectedCity}
                     onChange={(e) => setSelectedCity(e.target.value)}
                   >
+                    <option value="">All Rwanda Districts</option>
                     {CITIES.map(city => (
                       <option key={city.name} value={city.name}>{city.name}</option>
                     ))}

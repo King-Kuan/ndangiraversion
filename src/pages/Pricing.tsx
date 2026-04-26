@@ -1,5 +1,5 @@
 import { PLANS } from '../constants';
-import { Check, Mail, Phone, ArrowRight } from 'lucide-react';
+import { Check, Mail, Phone, ArrowRight, Megaphone, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Pricing() {
@@ -50,6 +50,45 @@ export default function Pricing() {
               </Link>
             </div>
           ))}
+        </div>
+
+        <div className="text-center max-w-2xl mx-auto mb-20 mt-32">
+          <h1 className="text-4xl md:text-5xl font-black text-stone-900 tracking-tight mb-6 uppercase">Expand Your Reach</h1>
+          <p className="text-stone-500 font-medium italic">High-visibility placement across the platform for flash sales, events, or brand awareness.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-32">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col group relative overflow-hidden">
+            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+              <Megaphone size={120} className="rotate-12" />
+            </div>
+            <div className="mb-8">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-2">High Visibility</span>
+              <h3 className="text-3xl font-black text-stone-900 mb-4 uppercase italic">Redirect Interstitial</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-stone-900">5,000 RWF</span>
+                <span className="text-stone-400 font-bold text-sm">/per campaign</span>
+              </div>
+            </div>
+            <p className="text-stone-600 text-sm font-medium mb-10 leading-relaxed">Exclusive 3-second countdown page that appears when users explore our directory. Guaranteed attention with a direct link to your site or business.</p>
+            <a href="https://wa.me/250792612139" className="mt-auto w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs text-center shadow-lg hover:bg-black transition-all">Book Ad via WhatsApp</a>
+          </div>
+
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col group relative overflow-hidden">
+             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+              <Star size={120} className="rotate-12 text-yellow-500" />
+            </div>
+            <div className="mb-8">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-2">Engagement Focus</span>
+              <h3 className="text-3xl font-black text-stone-900 mb-4 uppercase italic">Palace Pop-Up</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-stone-900">2,500 RWF</span>
+                <span className="text-stone-400 font-bold text-sm">/week</span>
+              </div>
+            </div>
+            <p className="text-stone-600 text-sm font-medium mb-10 leading-relaxed">Interactive popup cards that appear globally or when specific categories are searched. Perfect for seasonal discounts or event registrations.</p>
+            <a href="https://wa.me/250792612139" className="mt-auto w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs text-center shadow-lg hover:bg-black transition-all">Book Ad via WhatsApp</a>
+          </div>
         </div>
 
         {/* Offline Payment Info */}

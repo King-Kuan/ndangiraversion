@@ -25,6 +25,8 @@
         "phone": { "type": "string" },
         "email": { "type": "string" },
         "website": { "type": "string" },
+        "bookingUrl": { "type": "string" },
+        "priceRange": { "type": "string", "enum": ["1", "2", "3"] },
         "lat": { "type": "number" },
         "lng": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "active", "rejected"] },
@@ -79,6 +81,29 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "businessId"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual chat message",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "text"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Conversation between user and business",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "businessId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participants", "businessId"]
     }
   },
   "firestore": {
@@ -101,6 +126,14 @@
     "/bookmarks/{bookmarkId}": {
       "schema": "Bookmark",
       "description": "User bookmarks"
+    },
+    "/chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Conversations"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Chat messages"
     }
   }
 }

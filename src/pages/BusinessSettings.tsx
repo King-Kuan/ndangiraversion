@@ -38,6 +38,7 @@ export default function BusinessSettings() {
     phone: '',
     email: '',
     website: '',
+    bookingUrl: '',
     address: '',
     priceRange: '1',
     lat: -1.9,
@@ -69,6 +70,7 @@ export default function BusinessSettings() {
           phone: data.phone,
           email: data.email,
           website: data.website || '',
+          bookingUrl: data.bookingUrl || '',
           address: data.address,
           priceRange: data.priceRange || '1',
           lat: data.lat,
@@ -214,16 +216,32 @@ export default function BusinessSettings() {
               </div>
 
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Website (Optional)</label>
+                <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Target URL/Website (Optional)</label>
                 <div className="flex items-center bg-stone-50 border-stone-100 rounded-2xl px-6 py-4 gap-4 focus-within:ring-2 ring-emerald-500 transition-all">
                   <Globe size={20} className="text-stone-300" />
                   <input 
                     type="url" 
                     className="bg-transparent border-none focus:ring-0 text-stone-900 w-full font-bold"
+                    placeholder="https://example.com"
                     value={formData.website}
                     onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Booking/Reservation URL (Optional)</label>
+                <div className="flex items-center bg-stone-50 border-stone-100 rounded-2xl px-6 py-4 gap-4 focus-within:ring-2 ring-emerald-500 transition-all">
+                  <LayoutDashboard size={20} className="text-stone-300" />
+                  <input 
+                    type="url" 
+                    className="bg-transparent border-none focus:ring-0 text-stone-900 w-full font-bold"
+                    placeholder="https://calendly.com/your-business"
+                    value={formData.bookingUrl}
+                    onChange={(e) => setFormData(p => ({ ...p, bookingUrl: e.target.value }))}
+                  />
+                </div>
+                <p className="text-[10px] text-stone-400 mt-2 font-medium">Link to Calendly, your website booking page, or a form.</p>
               </div>
             </div>
 

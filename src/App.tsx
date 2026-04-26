@@ -10,10 +10,12 @@ import Dashboard from './pages/Dashboard';
 import BusinessSettings from './pages/BusinessSettings';
 import AdminDashboard from './pages/AdminDashboard';
 import Pricing from './pages/Pricing';
+import Messages from './pages/Messages';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import { PalacePopup, RedirectInterstitial } from './components/AdComponents';
 import PWAPrompt from './components/PWAPrompt';
+import ChatOverlay from './components/ChatOverlay';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -30,6 +32,7 @@ export default function App() {
       <PalacePopup />
       <RedirectInterstitial />
       <PWAPrompt />
+      <ChatOverlay />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -41,6 +44,7 @@ export default function App() {
           <Route path="/dashboard/settings/:id" element={<BusinessSettings />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/messages" element={<Messages />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="*" element={<Home />} />

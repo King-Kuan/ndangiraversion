@@ -36,8 +36,26 @@ export interface BusinessListing {
   views: number;
   verified: boolean;
   priceRange?: '1' | '2' | '3'; // 1: $, 2: $$, 3: $$$
+  bookingUrl?: string;
   approvalEmailSent?: boolean;
   expiryDate?: any;
+  createdAt: any;
+}
+
+export interface Chat {
+  id: string;
+  participants: string[];
+  businessId: string;
+  businessName?: string;
+  lastMessage?: string;
+  updatedAt: any;
+}
+
+export interface Message {
+  id: string;
+  chatId: string;
+  senderId: string;
+  text: string;
   createdAt: any;
 }
 
