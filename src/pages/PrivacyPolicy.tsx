@@ -10,93 +10,83 @@ export default function PrivacyPolicy() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="mb-12 border-b border-stone-100 pb-8">
-            <h1 className="text-4xl font-black text-stone-900 mb-4 tracking-tight">Privacy Policy</h1>
-            <p className="text-stone-400 text-sm font-medium italic">Last updated: April 22, 2026</p>
+            <h1 className="text-4xl font-black text-stone-900 mb-4 tracking-tight uppercase italic">Privacy & Data Governance</h1>
+            <p className="text-stone-400 text-sm font-medium italic">Legal Revision: April 26, 2026</p>
           </div>
 
           <div className="prose prose-stone max-w-none space-y-10 text-stone-600">
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">1. Introduction</h2>
-              <p className="leading-relaxed">
-                Welcome to <strong>Ndangira</strong>. We are committed to protecting your personal data and your privacy. 
-                This Privacy Policy describes how <strong>The Palace, Inc.</strong> collects, uses, and shares your personal information 
-                when you visit our platform or use our services in accordance with the <strong>Law No. 058/2021 of 13/10/2021 Relating to the Protection of Personal Data and Privacy</strong> in Rwanda.
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">1. Institutional Commitment to Privacy</h2>
+              <p className="leading-relaxed text-sm">
+                Ndangira, a platform proprietary to <strong>The Palace, Inc.</strong> (hereafter "The Company"), operates under a rigorous framework of data protection. We recognize that privacy is a fundamental right. This Governance Policy outlines our protocols for the acquisition, retention, and secure processing of personal information, strictly adhering to <strong>Law No. 058/2021</strong> of the Republic of Rwanda.
               </p>
             </section>
             
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">2. Information We Collect</h2>
-              <p className="leading-relaxed mb-4">
-                We collect information that you contribute directly to us, including:
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">2. Scope of Data Acquisition</h2>
+              <p className="leading-relaxed mb-4 text-sm">
+                The Company executes data collection only when essential for service delivery. Such data includes:
               </p>
-              <ul className="list-disc ml-6 space-y-2 text-sm italic">
-                <li><strong>Account Information:</strong> Name, email address, password, and phone number.</li>
-                <li><strong>Business Information:</strong> Business name, description, address, category, contact details, and photos.</li>
-                <li><strong>Communication Data:</strong> Information provided when you contact our support team.</li>
-                <li><strong>Automatically Collected Data:</strong> IP address, device type, browser information, and how you interact with our platform (via Google Analytics and Firebase).</li>
+              <ul className="list-disc ml-6 space-y-3 text-sm font-medium">
+                <li><strong className="text-stone-900">Identity Credentials:</strong> Legal names, verified email distributions, encrypted credentials, and telephonic identifiers.</li>
+                <li><strong className="text-stone-900">Business Enterprise Data:</strong> Corporate nomenclature, geographic coordinates, sector classifications, and digital assets associated with the entity.</li>
+                <li><strong className="text-stone-900">Technical Metadata:</strong> Persistent identifiers (IP addresses), cryptographic session tokens, and telemetry relating to system interaction (via Google Cloud and Firebase).</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">3. How We Use Your Information</h2>
-              <p className="leading-relaxed mb-4">
-                We use the collected information for the following purposes:
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">3. Jurisdictional Basis for Processing</h2>
+              <p className="leading-relaxed mb-4 text-sm">
+                Information processing is conducted solely for the following corporate objectives:
               </p>
-              <ul className="list-disc ml-6 space-y-2 text-sm italic">
-                <li>To provide and maintain our services.</li>
-                <li>To facilitate business discovery and connecting users with local Rwandan businesses.</li>
-                <li>To process payments and manage your subscriptions.</li>
-                <li>To communicate with you about updates, security alerts, and support.</li>
-                <li>To analyze platform usage and improve our user interface and features.</li>
+              <ul className="list-disc ml-6 space-y-3 text-sm">
+                <li>Execution of contractual obligations to platform participants.</li>
+                <li>Facilitation of business visibility and commercial networking within the Rwandan territory.</li>
+                <li>Management of fiscal transactions and subscription governance.</li>
+                <li>Maintenance of system integrity, security benchmarking, and technical support.</li>
+                <li>Legal compliance with statutory reporting requirements.</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">4. Data Sharing and Disclosure</h2>
-              <p className="leading-relaxed">
-                We do not sell your personal data. We may share information with:
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">4. Third-Party Protocols & Data Transmission</h2>
+              <p className="leading-relaxed text-sm">
+                The Company prohibits the commercial sale of user data. Information transmission is limited to:
               </p>
-              <ul className="list-disc ml-6 space-y-2 text-sm italic">
-                <li><strong>Service Providers:</strong> Third parties like Google Firebase (hosting/database), ImageKit (photo storage), and Resend (email delivery).</li>
-                <li><strong>Public Listings:</strong> Business details you provide for your listing will be publicly visible to all users of the platform.</li>
-                <li><strong>Legal Compliance:</strong> If required by Rwandan authorities to comply with legal obligations or protect our rights.</li>
+              <ul className="list-disc ml-6 mt-4 space-y-2 text-sm italic">
+                <li><strong>Infrastructure Providers:</strong> Google Cloud Platform (Core Infrastructure), Firebase (Real-time Database), and Resend (Institutional Communications).</li>
+                <li><strong>Public Dissemination:</strong> Data explicitly categorized as "Business Profile" information is disseminated publicly as per the platform's primary function.</li>
+                <li><strong>Judicial Mandates:</strong> Disclosure required by valid legal process or to protect the corporate rights and safety of The Palace, Inc.</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">5. Data Security</h2>
-              <p className="leading-relaxed">
-                We implement industry-standard security measures, including encryption and secure database protocols provided by Google Cloud, to protect your data. 
-                However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">5. Cryptographic Protection & Retention</h2>
+              <p className="leading-relaxed text-sm">
+                We utilize AES-256 encryption for data at rest and TLS 1.3 for data in transit. 
+                Information is retained only for the duration necessary to satisfy the objectives stated in Section 3, or as mandated by Rwandan fiscal and corporate law.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">6. Your Rights</h2>
-              <p className="leading-relaxed mb-4">
-                Under Rwandan data protection laws, you have the right to:
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">6. Statutory Rights of the Data Subject</h2>
+              <p className="leading-relaxed mb-4 text-sm">
+                Participants maintain the following rights under Rwandan jurisdiction:
               </p>
-              <ul className="list-disc ml-6 space-y-2 text-sm italic">
-                <li>Access the personal data we hold about you.</li>
-                <li>Request the correction of inaccurate data.</li>
-                <li>Request the deletion of your data (Right to be Forgotten).</li>
-                <li>Object to the processing of your data for marketing purposes.</li>
+              <ul className="list-disc ml-6 space-y-2 text-sm">
+                <li>Right of Access and Portability.</li>
+                <li>Right to Rectification of inaccurate records.</li>
+                <li>Right to Erasure (as permitted by statutory retention requirements).</li>
+                <li>Right to Restriction of Processing regarding specific marketing datasets.</li>
               </ul>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">7. Changes to this Policy</h2>
-              <p className="leading-relaxed">
-                We may update this Privacy Policy from time to time. We will notify you of any significant changes by posting the new policy on this page and updating the "Last updated" date.
-              </p>
             </section>
 
             <section className="bg-stone-50 p-8 rounded-3xl border border-stone-100">
-              <h2 className="text-stone-900 font-black uppercase tracking-widest text-xs mb-4 italic">Contact Us</h2>
+              <h2 className="text-stone-900 font-black uppercase tracking-widest text-xs mb-4 italic leading-tight">Institutional Inquiry</h2>
               <p className="text-stone-500 text-sm leading-relaxed">
-                For questions regarding your privacy or to exercise your data rights, please contact our <strong>Data Protection Coordinator</strong> at:<br/>
-                <span className="text-emerald-600 font-bold">management@ndangira.rw</span><br/>
-                Location: Gisenyi, Rubavu District, Rwanda.
+                Address all formal privacy inquiries and statutory requests to the <strong>Office of Data Governance</strong>:<br/>
+                <span className="text-emerald-600 font-bold">legal@ndangira.rw</span><br/>
+                Headquarters: Gisenyi, Rubavu District, Western Province, Rwanda.
               </p>
             </section>
           </div>

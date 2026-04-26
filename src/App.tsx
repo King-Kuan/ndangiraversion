@@ -13,6 +13,7 @@ import Pricing from './pages/Pricing';
 import Messages from './pages/Messages';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import About from './pages/About';
 import { PalacePopup, RedirectInterstitial } from './components/AdComponents';
 import PWAPrompt from './components/PWAPrompt';
 import ChatOverlay from './components/ChatOverlay';
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/messages" element={<Messages />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </Layout>

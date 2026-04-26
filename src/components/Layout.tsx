@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { LogIn, LogOut, LayoutDashboard, User, Search, MapPin, PlusCircle, MessageSquare, Bell } from 'lucide-react';
 
 import { GlobalRibbon } from './AdComponents';
+import CookieConsent from './CookieConsent';
 
 interface LayoutProps {
   children: ReactNode;
@@ -58,6 +59,7 @@ export default function Layout({ children }: LayoutProps) {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
             <Link to="/" className="hover:text-emerald-600 transition-colors">Find Businesses</Link>
             <Link to="/pricing" className="hover:text-emerald-600 transition-colors">Pricing</Link>
+            <Link to="/about" className="hover:text-emerald-600 transition-colors">About Systems</Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -131,6 +133,8 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
+      <CookieConsent />
+
       <footer className="bg-stone-900 text-stone-400 py-12 border-t border-stone-800">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-4">
@@ -146,6 +150,7 @@ export default function Layout({ children }: LayoutProps) {
           <div>
             <h4 className="text-white font-semibold mb-6">Quick Links</h4>
             <ul className="space-y-3 text-sm">
+              <li><Link to="/about" className="hover:text-emerald-500">About Systems</Link></li>
               <li><Link to="/" className="hover:text-emerald-500">Search</Link></li>
               <li><Link to="/pricing" className="hover:text-emerald-500">Pricing</Link></li>
               <li><Link to="/register" className="hover:text-emerald-500">Register Business</Link></li>
