@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, increment, limit } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
-import { BusinessListing, Review } from '../types';
+import { BusinessListing, Review, PalaceAd } from '../types';
 import MapComponent from '../components/MapComponent';
-import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye, Share2, Check } from 'lucide-react';
+import { AdCard } from '../components/AdComponents';
+import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye, Share2, Check, Megaphone } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +13,8 @@ export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
   const [business, setBusiness] = useState<BusinessListing & { views?: number } | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [related, setRelated] = useState<BusinessListing[]>([]);
+  const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
   const [newReview, setNewReview] = useState({ content: '', rating: 5 });
@@ -23,9 +26,9 @@ export default function BusinessDetail() {
     if (isFirstLoad) setLoading(true);
     try {
       const docRef = doc(db, 'businesses', id);
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const businessData = snapshot.id ? { id: snapshot.id, ...snapshot.data() } as BusinessListing : null;
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const businessData = { id: snap.id, ...snap.data() } as BusinessListing & { views?: number };
         setBusiness(businessData);
         
         // Increment views on first load
@@ -40,10 +43,32 @@ export default function BusinessDetail() {
             window.dispatchEvent(new CustomEvent('palace-ad-trigger', { detail: { type } }));
           }
         }
+
+        const reviewsSnapshot = await getDocs(query(collection(db, 'reviews'), where('businessId', '==', id)));
+        setReviews(reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
+
+        // Fetch related businesses and ads using localized businessData
+        const relatedQ = query(
+          collection(db, 'businesses'),
+          where('status', '==', 'active'),
+          where('category', '==', businessData.category || 'Services'),
+          limit(4)
+        );
+        const relatedSnap = await getDocs(relatedQ);
+        setRelated(relatedSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing))
+          .filter(b => b.id !== id)
+        );
+
+        const adsQ = query(
+          collection(db, 'palaceads'),
+          where('placement', '==', 'card'),
+          where('status', '==', 'active'),
+          limit(2)
+        );
+        const adsSnap = await getDocs(adsQ);
+        setAds(adsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
       }
-      
-      const reviewsSnapshot = await getDocs(query(collection(db, 'reviews'), where('businessId', '==', id)));
-      setReviews(reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `businesses/${id}`);
     } finally {
@@ -155,6 +180,7 @@ export default function BusinessDetail() {
   }
 
   return (
+    <>
     <div className="flex flex-col pb-20">
       {/* Background Header */}
       <div className="h-64 md:h-96 relative bg-stone-900">
@@ -439,5 +465,64 @@ export default function BusinessDetail() {
         </div>
       </div>
     </div>
+
+    {/* Related & Ads Feed */}
+    <section className="bg-stone-50 py-24">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between mb-12">
+          <div>
+            <h2 className="text-3xl font-black text-stone-900 tracking-tight mb-2 uppercase">Suggested for You</h2>
+            <p className="text-stone-500 font-medium text-sm italic">Discover more verified partners and exclusive offers in Rwanda</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-purple-600">
+            <Megaphone size={18} />
+            <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Partner Feed Active</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {related.length > 0 ? (
+            related.map(b => (
+              <Link 
+                to={`/business/${b.id}`} 
+                key={b.id}
+                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-stone-100 transition-all group flex flex-col"
+              >
+                <div className="relative h-48 bg-stone-200">
+                  {b.photos?.[0] ? (
+                    <img 
+                      src={b.photos[0]} 
+                      alt={b.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-stone-400">
+                      <ImageIcon size={32} />
+                    </div>
+                  )}
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-sm">
+                    {b.category}
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-700 transition-colors line-clamp-1">{b.name}</h3>
+                  <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed">{b.description}</p>
+                </div>
+              </Link>
+            ))
+          ) : (
+            // If no related, show more ads or placeholder
+            ads.length === 0 && <div className="text-stone-300 italic text-sm">No other suggestions yet.</div>
+          )}
+          
+          {/* Always show up to 2 ads if available */}
+          {ads.map(ad => (
+            <AdCard key={ad.id} ad={ad as PalaceAd} />
+          ))}
+        </div>
+      </div>
+    </section>
+    </>
   );
 }

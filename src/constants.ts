@@ -65,5 +65,6 @@ export const PLANS = [
 export const AD_PRICES = {
   ribbon: '15,000 RWF',
   popup: '25,000 RWF',
-  redirect: '35,000 RWF'
+  redirect: '35,000 RWF',
+  card: '20,000 RWF'
 };

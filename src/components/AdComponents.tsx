@@ -16,7 +16,7 @@ const trackAdView = async (adId: string) => {
   }
 };
 
-const trackAdClick = async (adId: string) => {
+export const trackAdClick = async (adId: string) => {
   try {
     await updateDoc(doc(db, 'palaceads', adId), {
       clicks: increment(1)
@@ -24,6 +24,65 @@ const trackAdClick = async (adId: string) => {
   } catch (err) {
     console.warn('Click tracking failed', err);
   }
+};
+
+export const AdCard: React.FC<{ ad: PalaceAd }> = ({ ad }) => {
+  useEffect(() => {
+    trackAdView(ad.id);
+  }, [ad.id]);
+
+  return (
+    <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border-2 border-purple-100 transition-all group flex flex-col relative h-full">
+      <div className="absolute top-4 right-4 z-10">
+        <span className="bg-purple-600 text-white text-[8px] font-black uppercase px-2 py-1 rounded-lg tracking-widest shadow-lg">Sponsored</span>
+      </div>
+      <div className="relative h-56 bg-stone-100">
+        {ad.image ? (
+          <img 
+            src={ad.image} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+            referrerPolicy="no-referrer"
+            alt={ad.title}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-stone-300">
+            <Megaphone size={48} />
+          </div>
+        )}
+      </div>
+      <div className="p-6 flex flex-col flex-grow">
+        <div className="flex items-center gap-2 mb-2 text-purple-600">
+          <Megaphone size={12} />
+          <span className="text-[10px] font-black uppercase tracking-widest leading-none">Partner Spotlight</span>
+        </div>
+        <h3 className="text-xl font-black text-stone-900 mb-2 line-clamp-1 italic uppercase leading-tight">{ad.title}</h3>
+        {ad.description && <p className="text-xs text-stone-500 line-clamp-2 mb-4 font-medium leading-relaxed">{ad.description}</p>}
+        {ad.businessName && (
+          <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-4 flex items-center gap-2">
+            By <span className="text-stone-900">{ad.businessName}</span>
+          </p>
+        )}
+        <div className="mt-auto">
+          {ad.targetUrl ? (
+            <a 
+              href={ad.targetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackAdClick(ad.id)}
+              className="w-full bg-stone-900 text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-black transition-all shadow-lg"
+            >
+              Learn More
+              <ExternalLink size={12} />
+            </a>
+          ) : (
+            <div className="w-full bg-stone-100 text-stone-400 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center">
+              Special Offer
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export const GlobalRibbon = () => {

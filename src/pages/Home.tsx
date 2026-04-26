@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { BusinessListing } from '../types';
+import { BusinessListing, PalaceAd } from '../types';
 import { CITIES, CATEGORIES } from '../constants';
 import MapComponent from '../components/MapComponent';
-import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink, CheckCircle, TrendingUp } from 'lucide-react';
+import { AdCard } from '../components/AdComponents';
+import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink, CheckCircle, TrendingUp, Megaphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 export default function Home() {
   const [businesses, setBusinesses] = useState<BusinessListing[]>([]);
+  const [ads, setAds] = useState<PalaceAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('Gasabo');
@@ -17,6 +19,20 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [mapCenter, setMapCenter] = useState<[number, number]>([-1.9, 30.1]);
   const [mapZoom, setMapZoom] = useState(13);
+
+  const fetchAds = async () => {
+    try {
+      const q = query(
+        collection(db, 'palaceads'),
+        where('placement', '==', 'card'),
+        where('status', '==', 'active')
+      );
+      const snapshot = await getDocs(q);
+      setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
+    } catch (err) {
+      console.warn('Ads fetch failed', err);
+    }
+  };
 
   const fetchBusinesses = async () => {
     setLoading(true);
@@ -75,6 +91,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchBusinesses();
+    fetchAds();
   }, [selectedCity, selectedCategory]);
 
   const filteredBusinesses = businesses.filter(b => 
@@ -82,7 +99,27 @@ export default function Home() {
     b.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
+    const interMode = viewMode === 'grid';
+    const interspersedItems: any[] = [];
+    if (interMode) {
+      let adIdx = 0;
+      const adFreq = 3;
+      
+      if (filteredBusinesses.length > 0) {
+        filteredBusinesses.forEach((b, i) => {
+          interspersedItems.push({ type: 'business', data: b });
+          if ((i + 1) % adFreq === 0 && ads.length > 0) {
+            interspersedItems.push({ type: 'ad', data: ads[adIdx % ads.length] });
+            adIdx++;
+          }
+        });
+      } else if (!loading && ads.length > 0) {
+        // Show only ads if no businesses found
+        ads.forEach(ad => interspersedItems.push({ type: 'ad', data: ad }));
+      }
+    }
+
+    return (
     <div className="flex flex-col">
       {/* Hero Search Section */}
       <section className="bg-emerald-900 text-white pt-16 pb-32 px-4 relative overflow-hidden">
@@ -227,11 +264,11 @@ export default function Home() {
                       Array.from({ length: 6 }).map((_, i) => (
                         <div key={i} className="bg-white rounded-3xl h-80 animate-pulse border border-stone-100 shadow-sm" />
                       ))
-                    ) : filteredBusinesses.length > 0 ? (
-                      filteredBusinesses.map(business => (
+                    ) : interspersedItems.length > 0 ? (
+                      interspersedItems.map((item, idx) => item.type === 'business' ? (
                         <Link 
-                          to={`/business/${business.id}`} 
-                          key={business.id}
+                          to={`/business/${item.data.id}`} 
+                          key={item.data.id}
                           onClick={() => {
                             // 5% chance to trigger a popup when viewing a business
                             if (Math.random() < 0.05) {
@@ -241,10 +278,10 @@ export default function Home() {
                           className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-stone-100 transition-all group flex flex-col"
                         >
                           <div className="relative h-48 bg-stone-200">
-                            {business.photos?.[0] ? (
+                            {item.data.photos?.[0] ? (
                               <img 
-                                src={business.photos[0]} 
-                                alt={business.name} 
+                                src={item.data.photos[0]} 
+                                alt={item.data.name} 
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 referrerPolicy="no-referrer"
                               />
@@ -255,16 +292,16 @@ export default function Home() {
                             )}
                             <div className="absolute top-4 left-4 flex flex-col gap-2">
                               <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-sm w-fit">
-                                {business.category}
+                                {item.data.category}
                               </div>
-                              {business.plan === 'featured' && (
+                              {item.data.plan === 'featured' && (
                                 <div className="bg-yellow-400 text-stone-900 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 w-fit">
                                   <Star size={10} fill="currentColor" />
                                   <span>Featured</span>
                                 </div>
                               )}
                             </div>
-                            {(business.verified || business.plan !== 'free') && (
+                            {(item.data.verified || item.data.plan !== 'free') && (
                               <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full shadow-lg border-2 border-white/50 flex items-center gap-1">
                                 <Navigation size={10} className="rotate-45" />
                                 <span className="text-[9px] font-black uppercase tracking-tighter">Verified</span>
@@ -274,28 +311,30 @@ export default function Home() {
                           
                           <div className="p-6 flex flex-col flex-grow">
                             <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-700 transition-colors line-clamp-1">{business.name}</h3>
+                              <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-700 transition-colors line-clamp-1">{item.data.name}</h3>
                               <div className="flex items-center gap-1 text-yellow-500">
                                 <Star size={14} fill="currentColor" />
-                                <span className="text-xs font-bold">{business.rating || 'New'}</span>
+                                <span className="text-xs font-bold">{item.data.rating || 'New'}</span>
                               </div>
                             </div>
-                            {(business.verified || business.plan !== 'free') && (
+                            {(item.data.verified || item.data.plan !== 'free') && (
                               <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1">
                                 <CheckCircle size={10} /> Certified Trusted Business
                               </p>
                             )}
-                            <p className="text-xs text-stone-500 mb-4 line-clamp-2 leading-relaxed">{business.description}</p>
+                            <p className="text-xs text-stone-500 mb-4 line-clamp-2 leading-relaxed">{item.data.description}</p>
                             
                             <div className="mt-auto pt-4 border-t border-stone-50 flex items-center justify-between">
                               <div className="flex items-center gap-1 text-stone-400">
                                 <MapPin size={12} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">{business.city}</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest">{item.data.city}</span>
                               </div>
                               <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest group-hover:underline underline-offset-4">View Profile</span>
                             </div>
                           </div>
                         </Link>
+                      ) : (
+                        <AdCard key={item.data.id} ad={item.data as PalaceAd} />
                       ))
                     ) : (
                       <div className="col-span-full flex flex-col items-center justify-center bg-white rounded-3xl p-20 text-center border border-dashed border-stone-300">

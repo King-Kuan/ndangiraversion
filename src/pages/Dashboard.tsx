@@ -449,6 +449,7 @@ export default function Dashboard() {
                       { id: 'ribbon', label: 'Ribbon', desc: 'Words only' },
                       { id: 'popup', label: 'Pop-up', desc: 'Img + words' },
                       { id: 'redirect', label: 'Redirect', desc: 'Direct link' },
+                      { id: 'card', label: 'Feed Card', desc: 'Shows in grid' },
                     ].map(t => (
                       <button
                         key={t.id}
@@ -476,12 +477,12 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {(newAd.placement === 'popup' || newAd.placement === 'redirect' || newAd.placement === 'ribbon') && (
+                {(newAd.placement === 'popup' || newAd.placement === 'redirect' || newAd.placement === 'ribbon' || newAd.placement === 'card') && (
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Target URL / Link {newAd.placement === 'ribbon' && '(Optional)'}</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Target URL / Link {(newAd.placement === 'ribbon' || newAd.placement === 'card') && '(Optional)'}</label>
                     <input 
                       type="url"
-                      required={newAd.placement !== 'ribbon'}
+                      required={newAd.placement !== 'ribbon' && newAd.placement !== 'card'}
                       placeholder="https://yourwebsite.com"
                       className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
                       value={newAd.targetUrl}
@@ -490,10 +491,10 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {(newAd.placement === 'popup' || newAd.placement === 'redirect') && (
+                {(newAd.placement === 'popup' || newAd.placement === 'redirect' || newAd.placement === 'card') && (
                   <>
                     <div className="space-y-4">
-                      <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-1">Ad Image {(newAd.placement === 'redirect') && '(Optional)'}</label>
+                      <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-1">Ad Image {(newAd.placement === 'redirect' || newAd.placement === 'card') && '(Optional)'}</label>
                       
                       {newAd.image ? (
                         <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-stone-100 group">
@@ -536,12 +537,12 @@ export default function Dashboard() {
                   </>
                 )}
 
-                {newAd.placement === 'popup' && (
+                {(newAd.placement === 'popup' || newAd.placement === 'card') && (
                   <div>
                     <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Description</label>
                     <textarea 
                       className="w-full bg-stone-50 border-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-purple-500"
-                      placeholder="Additional details for the popup..."
+                      placeholder={newAd.placement === 'card' ? "Main text for the ad card..." : "Additional details for the popup..."}
                       value={newAd.description}
                       onChange={(e) => setNewAd(prev => ({ ...prev, description: e.target.value }))}
                     />

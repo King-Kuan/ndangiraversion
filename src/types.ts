@@ -2,7 +2,7 @@ export type UserRole = 'user' | 'admin';
 export type BusinessStatus = 'pending' | 'active' | 'rejected';
 export type BusinessPlan = 'free' | 'standard' | 'featured';
 export type AdStatus = 'pending' | 'active' | 'expired';
-export type AdPlacement = 'ribbon' | 'popup' | 'redirect';
+export type AdPlacement = 'ribbon' | 'popup' | 'redirect' | 'card';
 
 export interface UserProfile {
   uid: string;
