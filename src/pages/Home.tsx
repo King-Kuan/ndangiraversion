@@ -28,10 +28,7 @@ export default function Home() {
         where('status', '==', 'active')
       );
       const snapshot = await getDocs(q);
-      setAds(snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd))
-        .filter(ad => ad.isVerified === true)
-      );
+      setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
     } catch (err) {
       console.warn('Ads fetch failed', err);
     }

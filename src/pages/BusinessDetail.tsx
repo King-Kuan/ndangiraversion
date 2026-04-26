@@ -67,10 +67,7 @@ export default function BusinessDetail() {
           limit(5)
         );
         const adsSnap = await getDocs(adsQ);
-        setAds(adsSnap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd))
-          .filter(ad => ad.isVerified === true)
-        );
+        setAds(adsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PalaceAd)));
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `businesses/${id}`);
