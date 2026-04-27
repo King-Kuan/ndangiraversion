@@ -60,66 +60,6 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Advertising Campaigns Section */}
-        <div className="mb-20 pt-20 border-t border-stone-200">
-          <h2 className="text-sm font-black text-stone-400 uppercase tracking-[0.4em] mb-12 flex items-center gap-4">
-            <span className="w-12 h-[1px] bg-stone-300"></span>
-            Advertising Campaigns
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Redirect Interstitial */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col group relative overflow-hidden">
-              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
-                <Megaphone size={120} className="rotate-12" />
-              </div>
-              <div className="mb-8">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-2">High Visibility</span>
-                <h3 className="text-2xl font-black text-stone-900 mb-4 uppercase italic">Redirect Interstitial</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-stone-900">10,000 RWF</span>
-                  <span className="text-stone-400 font-bold text-sm">/per campaign</span>
-                </div>
-              </div>
-              <p className="text-stone-600 text-xs font-medium mb-10 leading-relaxed">Exclusive 3-second countdown page that appears when users explore our directory. Guaranteed attention with a direct link to your site or business.</p>
-              <a href="https://wa.me/250792612139" className="mt-auto w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] text-center shadow-lg hover:bg-black transition-all">Launch via WhatsApp</a>
-            </div>
-
-            {/* Palace Pop-Up */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col group relative overflow-hidden">
-               <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
-                <Star size={120} className="rotate-12 text-yellow-500" />
-              </div>
-              <div className="mb-8">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-2">Engagement Focus</span>
-                <h3 className="text-2xl font-black text-stone-900 mb-4 uppercase italic">Palace Pop-Up</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-stone-900">30,000 RWF</span>
-                  <span className="text-stone-400 font-bold text-sm">/week</span>
-                </div>
-              </div>
-              <p className="text-stone-600 text-xs font-medium mb-10 leading-relaxed">Interactive popup cards that appear globally or when specific categories are searched. Perfect for seasonal discounts or event registrations.</p>
-              <a href="https://wa.me/250792612139" className="mt-auto w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] text-center shadow-lg hover:bg-black transition-all">Launch via WhatsApp</a>
-            </div>
-
-            {/* Global Ribbon */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col group relative overflow-hidden">
-               <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
-                <Zap size={120} className="rotate-12 text-emerald-500" />
-              </div>
-              <div className="mb-8">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-2">Omnipresent Brand</span>
-                <h3 className="text-2xl font-black text-stone-900 mb-4 uppercase italic">Global Ribbon</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-stone-900">15,000 RWF</span>
-                  <span className="text-stone-400 font-bold text-sm">/week</span>
-                </div>
-              </div>
-              <p className="text-stone-600 text-xs font-medium mb-10 leading-relaxed">A persistent sticky header banner visible on every page of the platform. Maximum national awareness for your brand name and logo.</p>
-              <a href="https://wa.me/250792612139" className="mt-auto w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] text-center shadow-lg hover:bg-black transition-all">Launch via WhatsApp</a>
-            </div>
-          </div>
-        </div>
-
         {/* Offline Payment Info */}
         <div className="bg-white rounded-[3rem] shadow-2xl p-8 md:p-16 border border-stone-100 flex flex-col md:flex-row gap-12 items-center">
           <div className="md:w-1/2 space-y-6">

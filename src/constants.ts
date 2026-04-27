@@ -58,8 +58,8 @@ export const CATEGORIES = [
 
 export const PLANS = [
   { id: 'free', name: 'Free', price: '0 RWF', features: ['Basic listing', '1 photo', 'Appears in search results'] },
-  { id: 'standard', name: 'Standard', price: '1,000/month', features: ['Up to 10 photos', 'Higher in search', 'Verified badge', 'Priority support'] },
-  { id: 'featured', name: 'Featured', price: '5,000/month', features: ['Everything in Standard', 'Top of search results', 'Homepage spotlight', 'Social media feature'] }
+  { id: 'standard', name: 'Standard', price: '15,000/month', features: ['Up to 10 photos', 'Higher in search', 'Verified badge', 'Priority support'] },
+  { id: 'featured', name: 'Featured', price: '45,000/month', features: ['Everything in Standard', 'Top of search results', 'Homepage spotlight', 'Social media feature'] }
 ];
 
 export const AD_PRICES = {

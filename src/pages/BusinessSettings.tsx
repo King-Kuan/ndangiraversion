@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { BusinessListing } from '../types';
@@ -87,14 +87,19 @@ export default function BusinessSettings() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!id || !business) return;
     setSaving(true);
     try {
+      // Only set to pending if status was rejected or if name was changed significantly
+      const newStatus = business.status === 'rejected' ? 'pending' : business.status;
+      
       await updateDoc(doc(db, 'businesses', id), {
         ...formData,
-        status: 'pending' // Re-verify on significant change? 
+        status: newStatus,
+        updatedAt: serverTimestamp()
       });
-      alert('Changes saved and submitted for verification!');
+      setBusiness(prev => prev ? { ...prev, ...formData, status: newStatus } : null);
+      alert('Changes saved successfully!');
       navigate('/dashboard');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `businesses/${id}`);

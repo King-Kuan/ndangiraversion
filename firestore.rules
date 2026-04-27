@@ -73,6 +73,11 @@ service cloud.firestore {
              (!('mapClicks' in data) || data.mapClicks is number) &&
              (!('reviewCount' in data) || data.reviewCount is number) &&
              (!('rating' in data) || data.rating is number) &&
+             (!('description' in data) || data.description is string) &&
+             (!('address' in data) || data.address is string) &&
+             (!('phone' in data) || data.phone is string) &&
+             (!('email' in data) || data.email is string) &&
+             (!('website' in data) || (data.website is string && data.website.size() < 500)) &&
              (!('bookingUrl' in data) || (data.bookingUrl is string && data.bookingUrl.size() < 500)) &&
              (!('expiryDate' in data) || data.expiryDate is timestamp);
     }
@@ -139,9 +144,12 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidBusiness(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
       allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'mapClicks', 'reviewCount', 'rating'])) || (
         isAuthenticated() && isValidBusiness(request.resource.data) && (
-          (request.auth.uid == resource.data.ownerUid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expiryDate', 'status'])) || 
-          (request.auth.uid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
-          isAdmin()
+          isAdmin() || (
+            request.auth.uid == resource.data.ownerUid && 
+            request.resource.data.ownerUid == resource.data.ownerUid &&
+            request.resource.data.plan == resource.data.plan &&
+            (request.resource.data.status == resource.data.status || request.resource.data.status == 'pending')
+          )
         )
       );
       allow delete: if isAdmin();
@@ -152,9 +160,10 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidAd(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
       allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks'])) || (
         isAuthenticated() && isValidAd(request.resource.data) && (
-          (request.auth.uid == resource.data.ownerUid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expiryDate', 'status'])) || 
-          (request.auth.uid == resource.data.ownerUid && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.status == resource.data.status) || 
-          isAdmin()
+          isAdmin() || (
+            request.auth.uid == resource.data.ownerUid &&
+            (request.resource.data.status == resource.data.status || request.resource.data.status == 'pending')
+          )
         )
       );
       allow delete: if isAdmin();
