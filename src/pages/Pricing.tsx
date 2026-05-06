@@ -19,44 +19,76 @@ export default function Pricing() {
             Membership Plans
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {PLANS.map((plan) => (
-              <div key={plan.id} className={`bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col ${plan.id === 'featured' ? 'ring-2 ring-emerald-600 relative' : ''}`}>
-                {plan.id === 'featured' && (
-                  <div className="absolute top-0 right-10 -translate-y-1/2 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
-                    Most Popular
-                  </div>
-                )}
-                
-                <div className="mb-8">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">{plan.id}</span>
-                  <h3 className="text-2xl font-black text-stone-900 mb-4">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1 focus:outline-none">
-                    <span className="text-3xl font-black text-emerald-900">{plan.price.split('/')[0]}</span>
-                    {plan.price.includes('/') && <span className="text-stone-400 font-bold text-sm">/{plan.price.split('/')[1]}</span>}
-                  </div>
+            {/* Free Listing */}
+            <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col group hover:-translate-y-2 transition-all">
+              <div className="mb-8">
+                <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">Free</span>
+                <h3 className="text-2xl font-black text-stone-900 mb-4">Free Listing</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-emerald-900">0 RWF</span>
+                  <span className="text-stone-400 font-bold text-sm">/forever</span>
                 </div>
-
-                <ul className="space-y-4 mb-10 flex-grow">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <div className="w-5 h-5 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mt-0.5 border border-emerald-100">
-                        <Check size={10} strokeWidth={4} />
-                      </div>
-                      <span className="text-sm text-stone-600 font-medium">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link 
-                  to="/register" 
-                  className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs text-center transition-all shadow-md active:scale-95 ${
-                    plan.id === 'featured' ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-stone-900 text-white hover:bg-black'
-                  }`}
-                >
-                  Choose {plan.name}
-                </Link>
               </div>
-            ))}
+              <ul className="space-y-4 mb-10 flex-grow">
+                {PLANS[0].features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mt-0.5 border border-emerald-100">
+                      <Check size={10} strokeWidth={4} />
+                    </div>
+                    <span className="text-sm text-stone-600 font-medium">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/register" className="w-full py-4 rounded-2xl bg-stone-900 text-white font-black uppercase tracking-widest text-xs text-center hover:bg-black transition-all shadow-md">Get Listed</Link>
+            </div>
+
+            {/* Standard (Earned) */}
+            <div className="bg-emerald-600 p-8 md:p-10 rounded-[2.5rem] shadow-2xl flex flex-col transform md:scale-110 relative z-10 group overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform">
+                <ShieldCheck size={100} className="text-white" />
+              </div>
+              <div className="mb-8 relative z-10">
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/70 block mb-2">Pillar of Trust</span>
+                <h3 className="text-2xl font-black text-white mb-4">Verified Standard</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-white">Earned</span>
+                </div>
+              </div>
+              <ul className="space-y-4 mb-10 flex-grow relative z-10">
+                {PLANS[1].features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-white/20 text-white rounded-full flex items-center justify-center shrink-0 mt-0.5 border border-white/30">
+                      <Check size={10} strokeWidth={4} />
+                    </div>
+                    <span className="text-sm text-white/90 font-medium">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="text-[10px] font-black text-center uppercase tracking-widest text-white/60 mb-1">Requires 6mo + 2k Views + 350 Reviews</div>
+            </div>
+
+            {/* Featured (Paid) */}
+            <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col group hover:-translate-y-2 transition-all">
+              <div className="mb-8">
+                <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">Revenue Growth</span>
+                <h3 className="text-2xl font-black text-stone-900 mb-4">Featured Growth</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-emerald-900">15,000 RWF</span>
+                  <span className="text-stone-400 font-bold text-sm">/month</span>
+                </div>
+              </div>
+              <ul className="space-y-4 mb-10 flex-grow">
+                {PLANS[2].features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mt-0.5 border border-emerald-100">
+                      <Star size={10} fill="currentColor" />
+                    </div>
+                    <span className="text-sm text-stone-600 font-medium">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/register" className="w-full py-4 rounded-2xl bg-stone-900 text-white font-black uppercase tracking-widest text-xs text-center hover:bg-black transition-all shadow-md">Buy Growth Pack</Link>
+            </div>
           </div>
         </div>
 

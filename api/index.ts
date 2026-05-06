@@ -5,12 +5,106 @@ import ImageKit from "imagekit";
 import { Resend } from "resend";
 import dotenv from "dotenv";
 
+import fs from 'fs';
+
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
+// Firebase Config for Server-side Meta Injection
+const FIREBASE_PROJECT_ID = "gen-lang-client-0318361197";
+const FIRESTORE_DATABASE_ID = "ai-studio-80a7b2ab-bfbc-47ad-81ef-fc7e7d908d25";
+
 app.use(express.json());
+
+// Dynamic SEO / Social Preview Middleware
+const injectMeta = async (req: any, res: any, next: any) => {
+  const isBusinessPage = req.path.startsWith('/business/');
+  if (!isBusinessPage) return next();
+
+  const businessId = req.path.split('/')[2];
+  if (!businessId) return next();
+
+  try {
+    // 1. Fetch business data via Firestore REST API (fastest way on server)
+    const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/${FIRESTORE_DATABASE_ID}/documents/businesses/${businessId}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`SEO: Business ${businessId} not found in Firestore REST API`);
+      return next();
+    }
+
+    const data = await response.json();
+    const fields = data.fields || {};
+    
+    const name = fields.name?.stringValue || "Ndangira Business";
+    const description = fields.description?.stringValue?.slice(0, 160) || "Discover verified services in Rwanda.";
+    const photo = fields.photos?.arrayValue?.values?.[0]?.stringValue || "/og-image.png";
+    const category = fields.category?.stringValue || "Business";
+    const city = fields.city?.stringValue || "Rwanda";
+
+    // 2. Load the HTML (either from Dev Vite or Prod Dist)
+    let html = "";
+    const isProd = process.env.NODE_ENV === "production";
+    const indexPath = isProd 
+      ? path.join(process.cwd(), 'dist', 'index.html')
+      : path.join(process.cwd(), 'index.html');
+
+    if (!fs.existsSync(indexPath) && isProd) {
+       return next(); // Build might not be ready
+    }
+
+    html = fs.readFileSync(indexPath, 'utf-8');
+
+    // 3. Transform HTML (Vite specific transform in dev)
+    if (!isProd && (global as any).vite) {
+      html = await (global as any).vite.transformIndexHtml(req.url, html);
+    }
+
+    // 4. Injected rich metadata for scrapers
+    const seoTitle = `${name} - ${category} in ${city} | Ndangira`;
+    const seoDesc = `${name} is a ${category} located in ${city}. Find more on Ndangira.`;
+    const fullUrl = `https://ndangira.rw${req.originalUrl}`;
+
+    const injectedHtml = html
+      .replace(/<title>.*?<\/title>/, `<title>${seoTitle}</title>`)
+      .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${seoTitle}" />`)
+      .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${seoDesc}" />`)
+      .replace(/<meta property="og:image" content=".*?" \/>/, `<meta property="og:image" content="${photo}" />`)
+      .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${fullUrl}" />`)
+      .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${seoDesc}" />`)
+      .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${seoTitle}" />`)
+      .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${seoDesc}" />`)
+      .replace(/<meta name="twitter:image" content=".*?" \/>/, `<meta name="twitter:image" content="${photo}" />`);
+
+    return res.status(200).set({ 'Content-Type': 'text/html' }).end(injectedHtml);
+
+  } catch (error) {
+    console.error("SEO Injection Error:", error);
+    next();
+  }
+};
+
+app.get('/business/:id', injectMeta);
+
+// Robots.txt
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send("User-agent: *\nAllow: /\nSitemap: https://ndangira.rw/sitemap.xml");
+});
+
+// Basic Sitemap (Ideally this should fetch all business IDs but for now we provide the main entry points)
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://ndangira.rw/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://ndangira.rw/pricing</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://ndangira.rw/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+</urlset>`);
+});
 
 // ImageKit Auth
 const imagekit = new ImageKit({
@@ -171,6 +265,7 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: "spa",
     });
+    (global as any).vite = vite; // Make vite available globally for SEO middleware
     app.use(vite.middlewares);
   } else {
     // Production: Serve static files from the dist directory

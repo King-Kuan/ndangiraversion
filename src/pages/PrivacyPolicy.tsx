@@ -23,14 +23,15 @@ export default function PrivacyPolicy() {
             </section>
             
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">2. Scope of Data Acquisition</h2>
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">2. Scope of Data Acquisition & Verification Metrics</h2>
               <p className="leading-relaxed mb-4 text-sm">
-                The Company executes data collection only when essential for service delivery. Such data includes:
+                The Company executes data collection only when essential for service delivery and trust verification. Such data includes:
               </p>
               <ul className="list-disc ml-6 space-y-3 text-sm font-medium">
-                <li><strong className="text-stone-900">Identity Credentials:</strong> Legal names, verified email distributions, encrypted credentials, and telephonic identifiers.</li>
-                <li><strong className="text-stone-900">Business Enterprise Data:</strong> Corporate nomenclature, geographic coordinates, sector classifications, and digital assets associated with the entity.</li>
-                <li><strong className="text-stone-900">Technical Metadata:</strong> Persistent identifiers (IP addresses), cryptographic session tokens, and telemetry relating to system interaction (via Google Cloud and Firebase).</li>
+                <li><strong className="text-stone-900">Identity Credentials:</strong> Legal names, verified email distributions, and telephonic identifiers.</li>
+                <li><strong className="text-stone-900">Business Enterprise Data:</strong> Corporate nomenclature, geographic coordinates, and professional assets.</li>
+                <li><strong className="text-stone-900">Verification Metrics:</strong> We track unique views and review authenticity to calculate verification milestones. This includes "Eligible Views" which exclude traffic generated during paid Featured periods to ensure purely organic trust growth.</li>
+                <li><strong className="text-stone-900">Technical Metadata:</strong> IP addresses and cryptographic session tokens managed via Google Cloud and Firebase.</li>
               </ul>
             </section>
 
@@ -41,11 +42,18 @@ export default function PrivacyPolicy() {
               </p>
               <ul className="list-disc ml-6 space-y-3 text-sm">
                 <li>Execution of contractual obligations to platform participants.</li>
-                <li>Facilitation of business visibility and commercial networking within the Rwandan territory.</li>
-                <li>Management of fiscal transactions and subscription governance.</li>
-                <li>Maintenance of system integrity, security benchmarking, and technical support.</li>
-                <li>Legal compliance with statutory reporting requirements.</li>
+                <li>Facilitation of business visibility and "Verified Trust" status within Rwanda.</li>
+                <li>Integrity Monitoring: Using metadata to prevent fraud, identity spoofing, and review manipulation.</li>
+                <li>Management of fiscal transactions for the Featured Growth tier.</li>
               </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">4. Trust Integrity & The "Strike" System</h2>
+              <p className="leading-relaxed text-sm italic">
+                Ndangira operates a strict zero-tolerance policy for privacy breaches. Any business owner found attempting to scrape user data, manipulate review metrics, or engage in extra-legal communication will be subject to our internal "Strike Logic." 
+                The first major breach of user privacy results in immediate revocation of "Verified Trust" status. Subsequent violations lead to permanent system banishment.
+              </p>
             </section>
 
             <section>

@@ -86,5 +86,7 @@ export interface Review {
   userName: string;
   rating: number;
   content: string;
+  reply?: string;
+  repliedAt?: any;
   createdAt: any;
 }

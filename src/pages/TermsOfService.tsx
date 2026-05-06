@@ -23,14 +23,25 @@ export default function TermsOfService() {
             </section>
             
             <section>
-              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">2. Account Integrity & Fiduciary Responsibility</h2>
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">2. Hierarchy of Status & Verification</h2>
               <p className="leading-relaxed mb-4 text-sm">
-                Access to restricted systemic features requires the establishment of a verified account. The Member warrants:
+                Ndangira uses a trust-based hierarchy for business discovery in Rwanda. Members understand and consent to the following:
               </p>
               <ul className="list-disc ml-6 space-y-3 text-sm">
-                <li><strong className="text-stone-900">Information Accuracy:</strong> All data provided must be legally accurate and subject to verification at the Company's discretion.</li>
-                <li><strong className="text-stone-900">Credential Security:</strong> The Member maintains absolute liability for the security of their cryptographic access credentials.</li>
-                <li><strong className="text-stone-900">Incident Reporting:</strong> Immediate mandatory notification to the Company of any suspected unauthorized access or systemic breach.</li>
+                <li><strong className="text-stone-900">Verified Trust Status:</strong> This is an earned, non-purchasable status. It requires: (a) 6 months of active system tenure, (b) 2,000 unique organic views (excluding Featured boost views), and (c) 350 authenticated community reviews.</li>
+                <li><strong className="text-stone-900">Featured Growth Status:</strong> A revocable, paid visibility boost. If a business's Featured status expires, the listing is automatically downgraded to the Free tier until it satisfies the independent requirements for Verified Trust.</li>
+                <li><strong className="text-stone-900">Revocation of Status:</strong> Verification is a privilege, not a right. The Company reserves the right to revoke any status (Verified or Featured) if a business falls below community standards or violates the privacy protocols defined in Section 4.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-black text-stone-900 mb-4 uppercase tracking-widest text-[10px]">3. Account Integrity & Fiduciary Responsibility</h2>
+              <p className="leading-relaxed mb-4 text-sm">
+                Access to restricted features requires the establishment of a verified identity. The Member warrants:
+              </p>
+              <ul className="list-disc ml-6 space-y-3 text-sm">
+                <li><strong className="text-stone-900">Information Accuracy:</strong> Listings must reflect real, operating businesses in Rwanda. Shadow businesses or shell profiles are strictly prohibited.</li>
+                <li><strong className="text-stone-900">Credential Security:</strong> Members maintain absolute liability for their cryptographic access credentials.</li>
               </ul>
             </section>
 

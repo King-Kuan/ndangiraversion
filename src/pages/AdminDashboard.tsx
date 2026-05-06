@@ -478,12 +478,21 @@ export default function AdminDashboard() {
       await updateDoc(docRef, { 
         plan, 
         pendingPlanUpdate: null,
-        expiryDate: thirtyDaysFromNow,
-        verified: plan === 'featured' || plan === 'standard' // Auto-verify on paid plans
+        expiryDate: thirtyDaysFromNow
       });
-      setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, plan: plan as any, pendingPlanUpdate: undefined, verified: true } : b));
+      setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, plan: plan as any, pendingPlanUpdate: undefined } : b));
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `businesses/${businessId}/upgrade`);
+    }
+  };
+
+  const handleToggleVerification = async (businessId: string, currentStatus: boolean) => {
+    try {
+      const docRef = doc(db, 'businesses', businessId);
+      await updateDoc(docRef, { verified: !currentStatus });
+      setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, verified: !currentStatus } : b));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `businesses/${businessId}/verify`);
     }
   };
 
@@ -639,6 +648,36 @@ export default function AdminDashboard() {
                       <span className="text-stone-400 font-bold uppercase tracking-widest">Region</span>
                       <span className="text-stone-900 font-black">{business.city}</span>
                     </div>
+                    
+                    {/* Verification Metrics */}
+                    <div className="pt-2 border-t border-stone-200 mt-2 space-y-2">
+                       <p className="text-[9px] font-black uppercase text-stone-400 tracking-[0.15em] mb-2">Verification Metrics</p>
+                       <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-stone-500 font-medium italic">Months Active</span>
+                          <span className={`font-black ${Math.floor((Date.now() - (business.createdAt?.seconds * 1000 || Date.now())) / (86400000 * 30.44)) >= 6 ? 'text-emerald-600' : 'text-stone-400'}`}>
+                            {Math.floor((Date.now() - (business.createdAt?.seconds * 1000 || Date.now())) / (86400000 * 30.44))} / 6
+                          </span>
+                       </div>
+                       <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-stone-500 font-medium italic">Eligible Views</span>
+                          <span className={`font-black ${(business.verificationViews || 0) >= 2000 ? 'text-emerald-600' : 'text-stone-400'}`}>
+                            {(business.verificationViews || 0).toLocaleString()} / 2,000
+                          </span>
+                       </div>
+                       <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-stone-500 font-medium italic">Global Reach</span>
+                          <span className="text-stone-400 font-black">
+                            {(business.views || 0).toLocaleString()}
+                          </span>
+                       </div>
+                       <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-stone-500 font-medium italic">Total Reviews</span>
+                          <span className={`font-black ${(business.reviewCount || 0) >= 350 ? 'text-emerald-600' : 'text-stone-400'}`}>
+                            {business.reviewCount || 0} / 350
+                          </span>
+                       </div>
+                    </div>
+
                     <div className="pt-2 border-t border-stone-100 flex flex-col gap-2">
                       <div className="flex items-center gap-2 text-[10px] text-stone-600">
                         <Phone size={10} className="text-stone-400" />
@@ -672,6 +711,30 @@ export default function AdminDashboard() {
                         Approve
                       </button>
                     )}
+                    
+                    {!business.verified ? (
+                      <button 
+                        onClick={() => handleToggleVerification(business.id, false)}
+                        className={`px-4 h-12 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${
+                          Math.floor((Date.now() - (business.createdAt?.seconds * 1000 || Date.now())) / (86400000 * 30.44)) >= 6 &&
+                          (business.verificationViews || 0) >= 2000 &&
+                          (business.reviewCount || 0) >= 350
+                          ? 'bg-emerald-600 text-white shadow-lg'
+                          : 'bg-stone-100 text-stone-400 hover:bg-stone-200'
+                        }`}
+                        title="Requirements: 6mo + 2k Eligible Views + 350 reviews"
+                      >
+                        Verify Trust
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleToggleVerification(business.id, true)}
+                        className="px-4 h-12 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100"
+                      >
+                        Revoke Trust
+                      </button>
+                    )}
+
                     {business.status === 'active' && !business.approvalEmailSent && (
                       <button 
                         onClick={() => handleAction('businesses', business.id, 'active')}

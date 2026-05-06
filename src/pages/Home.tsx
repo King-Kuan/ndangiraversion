@@ -8,6 +8,7 @@ import { AdCard } from '../components/AdComponents';
 import { Search, Map as MapIcon, Grid, Filter, MapPin, Star, Navigation, ExternalLink, CheckCircle, TrendingUp, Megaphone, Heart, ArrowUpDown, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useBookmarks } from '../hooks/useBookmarks';
 
 export default function Home() {
@@ -72,15 +73,19 @@ export default function Home() {
         });
       }
 
-      // Sort logic
+      // Sort logic - Global Hierarchy: 1. Verified, 2. Featured, 3. Standard/Free
       processedResults = processedResults.sort((a, b) => {
-        if (sortBy === 'featured') {
-          const planOrder = { featured: 0, standard: 1, free: 2 };
-          return planOrder[a.plan] - planOrder[b.plan];
-        }
+        // High-level hierarchy
+        if (a.verified !== b.verified) return a.verified ? -1 : 1;
+        
+        const planOrder = { featured: 0, standard: 1, free: 2 };
+        if (a.plan !== b.plan) return planOrder[a.plan] - planOrder[b.plan];
+
+        // Secondary sorting based on user preference
         if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
         if (sortBy === 'popular') return (b.views || 0) - (a.views || 0);
         if (sortBy === 'newest') return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        
         return 0;
       });
 
@@ -113,10 +118,17 @@ export default function Home() {
     fetchAds();
   }, [selectedCity, selectedCategory, selectedPrice, sortBy]);
 
-  const filteredBusinesses = businesses.filter(b => 
-    b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBusinesses = businesses.filter(b => {
+    const s = searchQuery.toLowerCase();
+    return (
+      b.name.toLowerCase().includes(s) ||
+      b.description.toLowerCase().includes(s) ||
+      b.category.toLowerCase().includes(s) ||
+      b.city.toLowerCase().includes(s) ||
+      // Simple 2-char matching for short/misspelled words if query is long enough
+      (s.length > 3 && b.name.toLowerCase().substring(0, 4).includes(s.substring(0, 3)))
+    );
+  });
 
     const interspersedItems: any[] = [];
     if (viewMode === 'grid') {
@@ -141,6 +153,14 @@ export default function Home() {
 
     return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>Ndangira - Discover Verified Businesses in Rwanda</title>
+        <meta name="description" content="Kigali, Rubavu, Musanze - Browse verified businesses, leave reviews, and find exactly what you need across all 30 districts of Rwanda." />
+        <meta name="keywords" content="Rwanda business directory, Kigali shops, Rubavu hotels, Rwanda services, Ndangira verified, trusted business Rwanda, Musanze restaurants" />
+        <meta property="og:title" content="Ndangira - Rwanda's Trusted Business Directory" />
+        <meta property="og:image" content="/og-image.png" />
+      </Helmet>
+
       {/* Hero Search Section */}
       <section className="bg-emerald-900 text-white pt-16 pb-32 px-4 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -250,16 +270,22 @@ export default function Home() {
           {/* Results Main Area */}
           <div className="flex-grow flex flex-col gap-6">
             {/* Trust Banner */}
-            <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm">
-              <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
-                <CheckCircle size={24} />
+            <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-emerald-600/5 group-hover:bg-emerald-600/10 transition-colors" />
+              <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-[0_0_20px_rgba(5,150,105,0.4)] relative z-10">
+                <CheckCircle size={28} />
               </div>
-              <div>
-                <h4 className="font-black text-emerald-900 text-sm uppercase tracking-wider mb-1">Choose Trusted Partners</h4>
-                <p className="text-xs text-emerald-700 leading-relaxed font-medium">Verified businesses on Ndangira are manually vetted for quality and reliability. We strongly recommend booking with Certified partners for the best experience.</p>
+              <div className="relative z-10">
+                <h4 className="font-black text-white text-sm uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                  The Trust Barrier
+                  <span className="h-1 w-8 bg-emerald-500 rounded-full" />
+                </h4>
+                <p className="text-xs text-stone-400 leading-relaxed font-medium max-w-xl">
+                  Ndangira <span className="text-emerald-400 font-bold">Verified</span> badges are the ultimate local pillars of trust. Businesses must maintain a strict record of <span className="text-white">6+ months</span> on platform, <span className="text-white">2,000+ views</span>, and <span className="text-white">350+ authentic reviews</span> to be eligible.
+                </p>
               </div>
-              <Link to="/pricing" className="whitespace-nowrap bg-emerald-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-95 shadow-md">
-                Get Certified
+              <Link to="/register" className="relative z-10 whitespace-nowrap bg-white text-stone-900 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-100 transition-all active:scale-95 shadow-lg ml-auto">
+                Start My Journey
               </Link>
             </div>
 
@@ -353,10 +379,15 @@ export default function Home() {
                                 </div>
                               )}
                             </div>
-                            {(item.data.verified || item.data.plan !== 'free') && (
-                              <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full shadow-lg border-2 border-white/50 flex items-center gap-1">
-                                <Navigation size={10} className="rotate-45" />
-                                <span className="text-[9px] font-black uppercase tracking-tighter">Verified</span>
+                            {item.data.verified ? (
+                              <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(5,150,105,0.5)] border-2 border-white/20 flex items-center gap-1.5">
+                                <CheckCircle size={12} />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Verified Trust</span>
+                              </div>
+                            ) : item.data.plan !== 'free' && (
+                              <div className="absolute top-4 right-4 bg-stone-900/80 backdrop-blur-md text-white px-3 py-1 rounded-full shadow-lg border border-white/10 flex items-center gap-1">
+                                <Star size={10} fill="currentColor" className="text-yellow-400" />
+                                <span className="text-[9px] font-black uppercase tracking-tighter">Growth Partner</span>
                               </div>
                             )}
                             <button 

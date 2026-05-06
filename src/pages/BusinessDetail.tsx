@@ -8,6 +8,7 @@ import { AdCard } from '../components/AdComponents';
 import { Star, MapPin, Phone, Mail, Globe, Navigation, CheckCircle, ChevronLeft, Image as ImageIcon, Send, MessageSquare, ExternalLink, TrendingUp, Eye, Share2, Check, Megaphone, Heart } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import { useBookmarks } from '../hooks/useBookmarks';
 
 export default function BusinessDetail() {
@@ -24,6 +25,33 @@ export default function BusinessDetail() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
 
+  // Structured Data (JSON-LD) for SEO
+  const jsonLd = business ? {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": business.name,
+    "image": business.photos?.[0] || "",
+    "@id": `https://ndangira.rw/business/${id}`,
+    "url": `https://ndangira.rw/business/${id}`,
+    "telephone": business.phone || "",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": business.address || "",
+      "addressLocality": business.city || "",
+      "addressCountry": "RW"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": business.lat,
+      "longitude": business.lng
+    },
+    "aggregateRating": business.reviewCount ? {
+      "@type": "AggregateRating",
+      "ratingValue": business.rating || 0,
+      "reviewCount": business.reviewCount
+    } : undefined
+  } : null;
+
   const fetchBusiness = async (isFirstLoad = false) => {
     if (!id) return;
     if (isFirstLoad) setLoading(true);
@@ -36,9 +64,14 @@ export default function BusinessDetail() {
         
         // Increment views on first load
         if (isFirstLoad) {
-          await updateDoc(docRef, {
-            views: increment(1)
-          }).catch(console.error);
+          const updates: any = { views: increment(1) };
+          
+          // Only increment verification views if plan is free
+          if (businessData.plan === 'free') {
+            updates.verificationViews = increment(1);
+          }
+
+          await updateDoc(docRef, updates).catch(console.error);
 
           // Contextual ad trigger (Rare: 10% chance when viewing a business)
           if (Math.random() < 0.1) {
@@ -199,7 +232,7 @@ export default function BusinessDetail() {
   };
 
   const visiblePhotos = business 
-    ? (business.plan === 'free' ? business.photos.slice(0, 1) : business.photos.slice(0, 10))
+    ? (business.plan === 'free' ? business.photos.slice(0, 5) : business.photos.slice(0, 10))
     : [];
 
   if (loading) {
@@ -222,6 +255,21 @@ export default function BusinessDetail() {
 
   return (
     <>
+    <Helmet>
+      <title>{business.name} - {business.category} in {business.city} | Ndangira</title>
+      <meta name="description" content={`${business.name} is a ${business.category} located in ${business.address}, ${business.city}. ${business.description.slice(0, 150)}...`} />
+      
+      {/* Dynamic Open Graph */}
+      <meta property="og:title" content={`${business.name} | Ndangira Rwanda`} />
+      <meta property="og:description" content={`Discover ${business.name}, leading ${business.category} in ${business.city}. Verified trust on Ndangira.`} />
+      <meta property="og:image" content={business.photos?.[0] || "/og-image.png"} />
+      <meta property="og:url" content={window.location.href} />
+      <meta property="og:type" content="business.business" />
+
+      {/* JSON-LD Structured Data */}
+      {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
+    </Helmet>
+
     <div className="flex flex-col pb-20">
       {/* Background Header */}
       <div className="h-64 md:h-96 relative bg-stone-900">
@@ -254,8 +302,12 @@ export default function BusinessDetail() {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-3xl md:text-5xl font-black text-stone-900 tracking-tight">{business.name}</h1>
-                    {(business.verified || business.plan !== 'free') && (
-                      <CheckCircle size={28} className="text-emerald-600 fill-emerald-50" />
+                    {business.verified ? (
+                      <div className="bg-emerald-600 text-white p-2 rounded-2xl shadow-[0_0_20px_rgba(5,150,105,0.4)]">
+                        <CheckCircle size={24} />
+                      </div>
+                    ) : business.plan !== 'free' && (
+                      <CheckCircle size={24} className="text-stone-400" />
                     )}
                   </div>
                   <div className="flex items-center gap-4">
@@ -264,7 +316,11 @@ export default function BusinessDetail() {
                       <span>{business.rating || 'New'}</span>
                     </div>
                     <span className="text-stone-400 text-sm font-medium">{reviews.length} Customer Reviews</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-stone-200" />
+                    {business.verified && (
+                      <span className="text-emerald-600 text-[10px] font-black uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100 flex items-center gap-1">
+                        <TrendingUp size={10} /> Trusted Pillar
+                      </span>
+                    )}
                     <span className="text-emerald-600 text-sm font-bold uppercase tracking-wider">{business.category}</span>
                   </div>
                 </div>
@@ -319,6 +375,24 @@ export default function BusinessDetail() {
                 <p className="text-stone-600 text-lg leading-relaxed whitespace-pre-wrap">{business.description}</p>
               </div>
 
+              {!business.verified && (
+                <div className="mt-12 bg-stone-50 border border-stone-200 rounded-[2rem] p-6 flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-stone-400 border border-stone-100 shadow-sm shrink-0">
+                    <Star size={24} />
+                  </div>
+                  <div className="flex-grow">
+                    <h4 className="text-sm font-black text-stone-900 uppercase tracking-widest mb-1">Help them reach the Trust Badge</h4>
+                    <p className="text-xs text-stone-500 font-medium">This business needs <span className="text-stone-900 font-black">350 reviews</span> to unlock the Verified Trust status. Your feedback matters!</p>
+                  </div>
+                  <button 
+                    onClick={() => document.getElementById('review-form')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="whitespace-nowrap text-xs font-black uppercase tracking-widest text-emerald-600 hover:underline"
+                  >
+                    Leave Review ➔
+                  </button>
+                </div>
+              )}
+
               {/* Photos Gallery */}
               {visiblePhotos.length > 1 && (
                 <div className="mt-12 space-y-4">
@@ -371,7 +445,7 @@ export default function BusinessDetail() {
               </div>
 
               {user ? (
-                <form onSubmit={handleSubmitReview} className="mb-12 bg-stone-50 p-6 md:p-8 rounded-3xl border border-stone-100">
+                <form id="review-form" onSubmit={handleSubmitReview} className="mb-12 bg-stone-50 p-6 md:p-8 rounded-3xl border border-stone-100">
                   <h4 className="font-bold text-stone-900 mb-6">Write a review</h4>
                   <div className="space-y-6">
                     <div>
@@ -438,6 +512,17 @@ export default function BusinessDetail() {
                         </div>
                       </div>
                       <p className="text-stone-600 text-sm leading-relaxed">{review.content}</p>
+                      {review.reply && (
+                        <div className="mt-4 ml-4 md:ml-8 p-4 bg-stone-50 rounded-2xl border-l-4 border-emerald-500">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Business Owner Response</span>
+                            <span className="text-[8px] text-stone-400 font-bold ml-auto">
+                              {review.repliedAt?.seconds ? new Date(review.repliedAt.seconds * 1000).toLocaleDateString() : ''}
+                            </span>
+                          </div>
+                          <p className="text-stone-800 text-sm font-medium">{review.reply}</p>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimestamp, documentId } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { BusinessListing, PalaceAd, AdPlacement, BusinessPlan } from '../types';
-import { AD_PRICES, CITIES } from '../constants';
+import { BusinessListing, PalaceAd, AdPlacement, BusinessPlan, Review } from '../types';
+import { AD_PRICES, CITIES, CATEGORIES, VERIFICATION_THRESHOLDS } from '../constants';
 import ImageUpload from '../components/ImageUpload';
 import { 
   Building2, 
@@ -27,7 +27,8 @@ import {
   X,
   Image as ImageIcon,
   ExternalLink as LinkIcon,
-  Heart
+  Heart,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [activeBusinessIndex, setActiveBusinessIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'listings' | 'saved'>('listings');
   const [ads, setAds] = useState<PalaceAd[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
   const business = businesses[activeBusinessIndex] || null;
@@ -54,6 +56,27 @@ export default function Dashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [adError, setAdError] = useState<string | null>(null);
 
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+
+  const handleReplyReview = async (reviewId: string) => {
+    const reply = replyTexts[reviewId];
+    if (!reply) return;
+    try {
+      await updateDoc(doc(db, 'reviews', reviewId), {
+        reply,
+        repliedAt: serverTimestamp()
+      });
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, reply, repliedAt: { seconds: Date.now()/1000 } } : r));
+      setReplyTexts(prev => {
+        const next = { ...prev };
+        delete next[reviewId];
+        return next;
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `reviews/${reviewId}/reply`);
+    }
+  };
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
@@ -62,6 +85,14 @@ export default function Dashboard() {
       const busSnapshot = await getDocs(busQuery);
       const fetchedBusinesses = busSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BusinessListing));
       setBusinesses(fetchedBusinesses);
+
+      // Fetch Reviews for owned businesses
+      if (fetchedBusinesses.length > 0) {
+        const businessIds = fetchedBusinesses.map(b => b.id);
+        const reviewsQuery = query(collection(db, 'reviews'), where('businessId', 'in', businessIds));
+        const reviewsSnapshot = await getDocs(reviewsQuery);
+        setReviews(reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
+      }
 
       const adsQuery = query(collection(db, 'palaceads'), where('ownerUid', '==', user.uid));
       const adsSnapshot = await getDocs(adsQuery);
@@ -189,6 +220,10 @@ export default function Dashboard() {
     expired: 'bg-stone-50 text-stone-800'
   };
 
+  const responseRate = reviews.length > 0 
+    ? (reviews.filter(r => r.reply).length / reviews.length) * 100 
+    : 0;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-12">
@@ -203,6 +238,16 @@ export default function Dashboard() {
               <p className="text-xs font-bold text-red-900">
                 Action Required: Some of your campaigns or listings are expiring soon. 
                 <span className="block text-[10px] text-red-600 font-medium mt-0.5">Please check your email ({user?.email}) for details and use the "Renew" buttons below.</span>
+              </p>
+            </div>
+          )}
+
+          {responseRate < 80 && reviews.length > 0 && (
+             <div className="mt-4 p-4 bg-yellow-50 border border-yellow-100 rounded-2xl flex items-center gap-4">
+              <Clock className="text-yellow-600" size={20} />
+              <p className="text-xs font-bold text-yellow-900">
+                Response Alert: Your response rate is {Math.round(responseRate)}%. 
+                <span className="block text-[10px] text-yellow-600 font-medium mt-0.5">Maintain 80% to earn the "Response Speed" trust badge.</span>
               </p>
             </div>
           )}
@@ -236,12 +281,13 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
         {[
           { label: 'Total Views', value: business?.views || 0, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
           { label: 'Map Clicks', value: business?.mapClicks || 0, icon: Navigation, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+          { label: 'Reviews', value: reviews.length, icon: StarIcon, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+          { label: 'Response Rate', value: `${Math.round(responseRate)}%`, icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
           { label: 'Saved Spots', value: savedBusinesses.length, icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50' },
-          { label: 'Total Ads', value: ads.length, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
         ].map((stat, i) => (
           <motion.div 
             key={i}
@@ -262,6 +308,89 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Listing View */}
         <div className="lg:col-span-2 space-y-8">
+          {/* Verification Progress Tracker */}
+          {business && !business.verified && (
+            <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 p-8 md:p-10 mb-8 overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 relative z-10">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight flex items-center gap-3 mb-2">
+                    <CheckCircle className="text-emerald-600" />
+                    Verification Roadmap
+                  </h2>
+                  <p className="text-stone-500 text-sm font-medium">Reach these milestones to unlock the infinite <span className="text-emerald-600 font-bold">Verified Trust</span> badge.</p>
+                </div>
+                <div className="bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100 font-bold text-emerald-700 text-xs flex items-center gap-2">
+                  <TrendingUp size={14} />
+                  Status: Growth Phase
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                {/* 1. Time on platform */}
+                <div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Time on Ndangira</span>
+                    <span className="text-xs font-bold text-stone-900">
+                      {Math.floor((Date.now() - (business.createdAt?.seconds * 1000 || Date.now())) / (86400000 * 30.44))} / {VERIFICATION_THRESHOLDS.MIN_MONTHS} mo
+                    </span>
+                  </div>
+                  <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, ((Date.now() - (business.createdAt?.seconds * 1000 || Date.now())) / (86400000 * 30.44)) / VERIFICATION_THRESHOLDS.MIN_MONTHS * 100)}%` }}
+                      className="h-full bg-emerald-500"
+                    />
+                  </div>
+                  <p className="text-[9px] text-stone-400 mt-2 flex items-center gap-1 font-bold italic uppercase tracking-tighter">
+                    <Calendar size={10} /> Min. 6 months registration required
+                  </p>
+                </div>
+
+                {/* 2. Views */}
+                <div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Total Reach</span>
+                    <span className="text-xs font-bold text-stone-900">
+                      {(business.verificationViews || 0).toLocaleString()} / {VERIFICATION_THRESHOLDS.MIN_VIEWS.toLocaleString()} views
+                    </span>
+                  </div>
+                  <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (business.verificationViews || 0) / VERIFICATION_THRESHOLDS.MIN_VIEWS * 100)}%` }}
+                      className="h-full bg-blue-500"
+                    />
+                  </div>
+                  <p className="text-[9px] text-stone-400 mt-2 flex items-center gap-1 font-bold italic uppercase tracking-tighter">
+                    <Eye size={10} /> Exclusive of Featured growth views
+                  </p>
+                </div>
+
+                {/* 3. Reviews */}
+                <div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Community Trust</span>
+                    <span className="text-xs font-bold text-stone-900">
+                      {business.reviewCount || 0} / {VERIFICATION_THRESHOLDS.MIN_REVIEWS} reviews
+                    </span>
+                  </div>
+                  <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (business.reviewCount || 0) / VERIFICATION_THRESHOLDS.MIN_REVIEWS * 100)}%` }}
+                      className="h-full bg-yellow-500"
+                    />
+                  </div>
+                  <p className="text-[9px] text-stone-400 mt-2 flex items-center gap-1 font-bold italic uppercase tracking-tighter">
+                    <StarIcon size={10} /> Social proof requirement
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-3xl shadow-lg border border-stone-100 overflow-hidden flex p-1 mb-8">
             <button 
               onClick={() => setActiveTab('listings')}
@@ -395,6 +524,89 @@ export default function Dashboard() {
                     <Link to="/" className="text-emerald-600 text-xs font-bold uppercase tracking-widest mt-4 inline-block hover:underline">Explore Local Spots ➔</Link>
                   </div>
                 )}
+            </div>
+          )}
+
+          {/* Review Management */}
+          {activeTab === 'listings' && businesses.length > 0 && (
+            <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 p-8 md:p-10">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                  <StarIcon className="text-yellow-500" />
+                  Review Activity
+                </h2>
+                <div className="flex items-center gap-2 px-4 py-2 bg-stone-50 rounded-2xl border border-stone-100">
+                  <div className={`w-2 h-2 rounded-full ${responseRate >= 80 ? 'bg-emerald-500 animate-pulse' : 'bg-yellow-500'}`} />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-stone-600">
+                    Response Rate: {Math.round(responseRate)}%
+                  </span>
+                </div>
+              </div>
+
+              {reviews.filter(r => r.businessId === business?.id).length > 0 ? (
+                <div className="space-y-6">
+                  {reviews
+                    .filter(r => r.businessId === business?.id)
+                    .sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+                    .map((review) => (
+                    <div key={review.id} className="p-6 bg-stone-50 rounded-3xl border border-stone-100">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-black text-xs uppercase">
+                            {review.userName.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="font-bold text-stone-900 text-sm block leading-none mb-1">{review.userName}</span>
+                            <span className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">
+                              {review.createdAt?.toDate ? new Date(review.createdAt.toDate()).toLocaleDateString() : 'New Review'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-yellow-500">
+                          <StarIcon size={12} fill="currentColor" />
+                          <span className="text-xs font-black">{review.rating}</span>
+                        </div>
+                      </div>
+                      <p className="text-stone-600 text-xs mb-4 italic leading-relaxed">"{review.content}"</p>
+                      
+                      {review.reply ? (
+                        <div className="bg-white p-4 rounded-2xl border border-stone-100">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Building2 size={12} className="text-emerald-600" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Your Response</span>
+                            <span className="text-[8px] text-stone-400 ml-auto uppercase font-bold">
+                              {review.repliedAt?.seconds ? new Date(review.repliedAt.seconds * 1000).toLocaleDateString() : 'Just now'}
+                            </span>
+                          </div>
+                          <p className="text-stone-900 text-xs font-medium">{review.reply}</p>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input 
+                            type="text"
+                            placeholder="Type your response..."
+                            className="flex-grow bg-white border-stone-200 rounded-xl px-4 py-2 text-xs focus:ring-emerald-500 focus:border-emerald-500"
+                            value={replyTexts[review.id] || ''}
+                            onChange={(e) => setReplyTexts(prev => ({ ...prev, [review.id]: e.target.value }))}
+                          />
+                          <button 
+                            onClick={() => handleReplyReview(review.id)}
+                            disabled={!replyTexts[review.id]}
+                            className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all"
+                          >
+                            Reply
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-stone-50 rounded-[2.5rem] border border-dashed border-stone-200">
+                  <StarIcon className="mx-auto text-stone-200 mb-4" size={32} />
+                  <p className="text-stone-400 italic text-sm">No reviews for this business yet.</p>
+                </div>
+              )}
             </div>
           )}
 

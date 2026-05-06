@@ -57,9 +57,9 @@ export const CATEGORIES = [
 ];
 
 export const PLANS = [
-  { id: 'free', name: 'Free', price: '0 RWF', features: ['Basic listing', '1 photo', 'Appears in search results'] },
-  { id: 'standard', name: 'Standard', price: '15,000/month', features: ['Up to 10 photos', 'Higher in search', 'Verified badge', 'Priority support'] },
-  { id: 'featured', name: 'Featured', price: '45,000/month', features: ['Everything in Standard', 'Top of search results', 'Homepage spotlight', 'Social media feature'] }
+  { id: 'free', name: 'Free Listing', price: '0 RWF', features: ['Basic listing', 'Up to 5 photos', 'Standard search results'] },
+  { id: 'standard', name: 'Verified Standard', price: '0 RWF', features: ['Earned via Verification', 'Up to 10 photos', 'Verified Trust Badge', 'Infinite/Permanent status'] },
+  { id: 'featured', name: 'Featured Growth', price: '15,000/month', features: ['Paid visibility boost', 'Top-tier placement (below Verified)', 'Homepage spotlight', 'Social media feature'] }
 ];
 
 export const AD_PRICES = {
@@ -67,4 +67,10 @@ export const AD_PRICES = {
   popup: '30,000 RWF',
   redirect: '10,000 RWF',
   card: '25,000 RWF'
+};
+
+export const VERIFICATION_THRESHOLDS = {
+  MIN_MONTHS: 6,
+  MIN_VIEWS: 2000,
+  MIN_REVIEWS: 350
 };

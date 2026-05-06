@@ -39,12 +39,15 @@ service cloud.firestore {
          request.auth.token.email == "fridomiamovement@gmail.com");
     }
 
-    function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function isValidUrl(url) {
-      return url is string && (url.matches("^https?://.*"));
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
 
     // ===============================================================
@@ -73,13 +76,16 @@ service cloud.firestore {
              (!('mapClicks' in data) || data.mapClicks is number) &&
              (!('reviewCount' in data) || data.reviewCount is number) &&
              (!('rating' in data) || data.rating is number) &&
+             (!('verificationViews' in data) || data.verificationViews is number) &&
+             (!('verified' in data) || data.verified is bool) &&
              (!('description' in data) || data.description is string) &&
              (!('address' in data) || data.address is string) &&
              (!('phone' in data) || data.phone is string) &&
              (!('email' in data) || data.email is string) &&
              (!('website' in data) || (data.website is string && data.website.size() < 500)) &&
              (!('bookingUrl' in data) || (data.bookingUrl is string && data.bookingUrl.size() < 500)) &&
-             (!('expiryDate' in data) || data.expiryDate is timestamp);
+             (!('expiryDate' in data) || data.expiryDate is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
     function isValidAd(data) {
@@ -141,39 +147,78 @@ service cloud.firestore {
 
     match /businesses/{businessId} {
       allow read: if resource.data.status == 'active' || (isAuthenticated() && (request.auth.uid == resource.data.ownerUid || isAdmin()));
-      allow create: if isAuthenticated() && isValidBusiness(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
-      allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'mapClicks', 'reviewCount', 'rating'])) || (
-        isAuthenticated() && isValidBusiness(request.resource.data) && (
-          isAdmin() || (
-            request.auth.uid == resource.data.ownerUid && 
-            request.resource.data.ownerUid == resource.data.ownerUid &&
-            request.resource.data.plan == resource.data.plan &&
-            (request.resource.data.status == resource.data.status || request.resource.data.status == 'pending')
-          )
-        )
+      allow create: if isAuthenticated() && isValidId(businessId) && isValidBusiness(incoming()) && 
+                    incoming().ownerUid == request.auth.uid && 
+                    incoming().status == 'pending' && 
+                    !('verified' in incoming());
+      
+      allow update: if isValidId(businessId) && (
+        isAdmin() || 
+        // 1. Metric increments (Public/System)
+        (existing().status == 'active' && incoming().diff(existing()).affectedKeys().hasOnly(['views', 'mapClicks', 'reviewCount', 'rating', 'verificationViews']) && (
+           // Prevent massive jumps (Fraud Detection)
+           (incoming().get('views', 0) <= existing().get('views', 0) + 1) &&
+           (incoming().get('mapClicks', 0) <= existing().get('mapClicks', 0) + 1) &&
+           
+           // Verification Views Logic: Only increment if plan is free
+           (
+             (existing().plan == 'free' && incoming().get('verificationViews', 0) <= existing().get('verificationViews', 0) + 1) ||
+             (existing().plan != 'free' && incoming().get('verificationViews', 0) == existing().get('verificationViews', 0))
+           ) &&
+
+           // Enforce immutability of trust/plan fields during metric updates
+           (incoming().verified == existing().verified) &&
+           (incoming().plan == existing().plan) &&
+           (incoming().status == existing().status) &&
+           (incoming().ownerUid == existing().ownerUid)
+        )) ||
+        // 2. Owner updates (Profile/Settings)
+        (isOwner(existing().ownerUid) && isValidBusiness(incoming()) && (
+           incoming().ownerUid == existing().ownerUid &&
+           incoming().plan == existing().plan &&
+           incoming().verified == existing().verified &&
+           (incoming().status == existing().status || incoming().status == 'pending') &&
+           (incoming().updatedAt == request.time) &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'city', 'category', 'address', 'phone', 'email', 'website', 'lat', 'lng', 'status', 'photos', 'bookingUrl', 'priceRange', 'pendingPlanUpdate', 'updatedAt'])
+        ))
       );
       allow delete: if isAdmin();
     }
 
     match /palaceads/{adId} {
       allow read: if resource.data.status == 'active' || (isAuthenticated() && (request.auth.uid == resource.data.ownerUid || isAdmin()));
-      allow create: if isAuthenticated() && isValidAd(request.resource.data) && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending';
-      allow update: if (resource.data.status == 'active' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks'])) || (
-        isAuthenticated() && isValidAd(request.resource.data) && (
-          isAdmin() || (
-            request.auth.uid == resource.data.ownerUid &&
-            (request.resource.data.status == resource.data.status || request.resource.data.status == 'pending')
-          )
-        )
+      allow create: if isAuthenticated() && isValidId(adId) && isValidAd(incoming()) && 
+                    incoming().ownerUid == request.auth.uid && 
+                    incoming().status == 'pending' &&
+                    // Ad Trust Sync: if businessId is provided, isVerified must match current business status
+                    (!('businessId' in incoming()) || incoming().isVerified == get(/databases/$(database)/documents/businesses/$(incoming().businessId)).data.verified);
+      
+      allow update: if isValidId(adId) && (
+        isAdmin() || 
+        (existing().status == 'active' && incoming().diff(existing()).affectedKeys().hasOnly(['views', 'clicks']) && (
+           incoming().get('views', 0) <= existing().get('views', 0) + 1 &&
+           incoming().get('clicks', 0) <= existing().get('clicks', 0) + 1
+        )) ||
+        (isOwner(existing().ownerUid) && isValidAd(incoming()) && (
+           incoming().ownerUid == existing().ownerUid &&
+           incoming().placement == existing().placement &&
+           (incoming().status == existing().status || incoming().status == 'pending')
+        ))
       );
       allow delete: if isAdmin();
     }
 
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if isAuthenticated() && isValidReview(request.resource.data) && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && isValidReview(request.resource.data) && (resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidId(reviewId) && isValidReview(incoming()) && 
+                    incoming().userId == request.auth.uid &&
+                    // Fraud protection: Business must exist and be active
+                    get(/databases/$(database)/documents/businesses/$(incoming().businessId)).data.status == 'active';
+      allow update: if isValidId(reviewId) && isAuthenticated() && isValidReview(incoming()) && 
+                    (existing().userId == request.auth.uid || isAdmin()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().businessId == existing().businessId;
+      allow delete: if isAdmin() || (isAuthenticated() && existing().userId == request.auth.uid);
     }
 
     match /bookmarks/{bookmarkId} {
