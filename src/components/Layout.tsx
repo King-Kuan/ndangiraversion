@@ -4,6 +4,7 @@ import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { LogIn, LogOut, LayoutDashboard, User, Search, MapPin, PlusCircle, MessageSquare, Bell } from 'lucide-react';
+import { logActivity, LogCategory, logSessionEnd } from '../services/logService';
 
 import { GlobalRibbon } from './AdComponents';
 import CookieConsent from './CookieConsent';
@@ -38,7 +39,16 @@ export default function Layout({ children }: LayoutProps) {
     return () => unsubscribe();
   }, [user]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Log logout before signing out
+    logActivity({
+      category: LogCategory.AUTH,
+      action: 'LOGOUT'
+    });
+    
+    // Also record session end
+    await logSessionEnd();
+    
     auth.signOut();
     navigate('/');
   };

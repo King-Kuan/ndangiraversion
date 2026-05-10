@@ -104,6 +104,21 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["participants", "businessId"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System activity log",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "category": { "type": "string", "enum": ["AUTH", "VIEW", "REVIEW", "BUSINESS_OPS", "SYSTEM", "SESSION"] },
+        "action": { "type": "string" },
+        "details": { "type": "object" },
+        "sessionDuration": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["category", "action", "timestamp"]
     }
   },
   "firestore": {
@@ -134,6 +149,10 @@
     "/chats/{chatId}/messages/{messageId}": {
       "schema": "Message",
       "description": "Chat messages"
+    },
+    "/logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "System-wide activity logs"
     }
   }
 }

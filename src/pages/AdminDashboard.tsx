@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, getDocs, updateDoc, doc, where, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, getDocs, updateDoc, doc, where, limit, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { BusinessListing, PalaceAd, UserProfile } from '../types';
+import { LogCategory, logActivity } from '../services/logService';
 import { 
   Building2, 
   Users, 
@@ -21,8 +22,26 @@ import {
   Mail,
   Star,
   ExternalLink,
-  Navigation
+  Navigation,
+  Activity,
+  Download,
+  Filter
 } from 'lucide-react';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer, 
+  BarChart as ReBarChart, 
+  Bar, 
+  Cell, 
+  PieChart, 
+  Pie,
+  Legend
+} from 'recharts';
 
 export default function AdminDashboard() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -31,10 +50,12 @@ export default function AdminDashboard() {
   const [allBusinesses, setAllBusinesses] = useState<BusinessListing[]>([]);
   const [allAds, setAllAds] = useState<PalaceAd[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [allLogs, setAllLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'listings' | 'ads' | 'users' | 'messages' | 'reports'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'ads' | 'users' | 'messages' | 'reports' | 'logs'>('listings');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'rejected' | 'expired'>('all');
+  const [logFilter, setLogFilter] = useState<string>('all');
 
   // Message Center States
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -425,6 +446,10 @@ export default function AdminDashboard() {
         // Fetch Users
         const usersSnapshot = await getDocs(collection(db, 'users'));
         setAllUsers(usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile)));
+
+        // Fetch Logs (Last 200 for initial view)
+        const logsSnapshot = await getDocs(query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(200)));
+        setAllLogs(logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (error) {
         handleFirestoreError(error, OperationType.LIST, 'admin/data');
       } finally {
@@ -580,7 +605,13 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab('reports')}
             className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'reports' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
           >
-            Reports
+            Stats & Reports
+          </button>
+          <button 
+            onClick={() => setActiveTab('logs')}
+            className={`px-6 py-3 rounded-2xl font-bold transition-all ${activeTab === 'logs' ? 'bg-stone-900 text-white shadow-xl scale-105' : 'bg-white text-stone-400 hover:bg-stone-100'}`}
+          >
+            Activity Logs
           </button>
         </div>
 
@@ -1031,89 +1062,217 @@ export default function AdminDashboard() {
                </div>
             </div>
           </div>
+        ) : activeTab === 'logs' ? (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-stone-100 flex flex-col md:flex-row gap-4 items-center">
+              <div className="flex-grow flex items-center gap-4 bg-stone-50 px-6 py-4 rounded-2xl w-full">
+                <Search className="text-stone-300" size={20} />
+                <input 
+                  type="text" 
+                  placeholder="Filter by user email or action..."
+                  className="bg-transparent border-none focus:ring-0 w-full text-stone-900 font-medium"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                {['all', 'AUTH', 'VIEW', 'REVIEW', 'SESSION', 'BUSINESS_OPS'].map((cat) => (
+                  <button 
+                    key={cat}
+                    onClick={() => setLogFilter(cat)}
+                    className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${logFilter === cat ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-400'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-stone-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-stone-50 border-b border-stone-100 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                    <tr>
+                      <th className="px-8 py-4">Timestamp</th>
+                      <th className="px-8 py-4">User</th>
+                      <th className="px-8 py-4">Category</th>
+                      <th className="px-8 py-4">Action</th>
+                      <th className="px-8 py-4">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-50">
+                    {allLogs
+                      .filter(l => (logFilter === 'all' || l.category === logFilter))
+                      .filter(l => !searchQuery || l.userEmail?.toLowerCase().includes(searchQuery.toLowerCase()) || l.action?.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map(log => (
+                      <tr key={log.id} className="hover:bg-stone-50/50 transition-colors">
+                        <td className="px-8 py-4 text-[10px] font-bold text-stone-400">
+                          {log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleString() : 'Recent'}
+                        </td>
+                        <td className="px-8 py-4">
+                          <p className="text-xs font-black text-stone-900">{log.userEmail}</p>
+                          <p className="text-[10px] text-stone-400 font-medium truncate w-32">{log.userId}</p>
+                        </td>
+                        <td className="px-8 py-4">
+                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                            log.category === 'AUTH' ? 'bg-blue-100 text-blue-700' :
+                            log.category === 'VIEW' ? 'bg-emerald-100 text-emerald-700' :
+                            log.category === 'REVIEW' ? 'bg-yellow-100 text-yellow-700' :
+                            log.category === 'SESSION' ? 'bg-purple-100 text-purple-700' : 'bg-stone-100 text-stone-500'
+                          }`}>
+                            {log.category}
+                          </span>
+                        </td>
+                        <td className="px-8 py-4 text-[10px] font-black text-stone-900 uppercase tracking-wider">
+                          {log.action}
+                        </td>
+                        <td className="px-8 py-4">
+                          <div className="text-[10px] text-stone-500 font-medium italic max-w-xs truncate">
+                            {log.details ? JSON.stringify(log.details) : log.sessionDuration ? `Duration: ${log.sessionDuration}s` : '-'}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         ) : activeTab === 'reports' ? (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-stone-100">
-              <div className="flex items-center gap-4 mb-12">
-                <div className="w-16 h-16 bg-emerald-100 rounded-3xl flex items-center justify-center text-emerald-600">
-                  <BarChart3 size={32} />
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Session Duration Trends */}
+              <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-stone-100">
+                <h3 className="text-xl font-black text-stone-900 uppercase italic mb-8 flex items-center gap-3">
+                  <Clock className="text-emerald-500" />
+                  User Engagement Traits
+                </h3>
+                <div className="h-80 w-full font-mono text-[10px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={allLogs
+                      .filter(l => l.category === 'SESSION')
+                      .slice(-50)
+                      .reverse()
+                      .map((l, i) => ({ name: i, duration: l.sessionDuration }))
+                    }>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="name" hide />
+                      <YAxis label={{ value: 'Seconds', angle: -90, position: 'insideLeft', offset: 10 }} />
+                      <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                      <Line type="monotone" dataKey="duration" stroke="#059669" strokeWidth={4} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-                <div>
-                  <h2 className="text-3xl font-black text-stone-900 italic uppercase">System Reports</h2>
-                  <p className="text-stone-400 font-medium">Generate and export platform data for analysis</p>
-                </div>
+                <p className="mt-4 text-[10px] text-stone-400 font-black text-center uppercase tracking-widest leading-relaxed">Session persistency (Last 50 recorded events)</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 group hover:border-emerald-200 transition-all">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
-                      <Building2 size={24} />
-                    </div>
-                    <h3 className="text-xl font-black text-stone-900 group-hover:text-emerald-600 transition-colors">Business Inventory</h3>
-                  </div>
-                  <p className="text-sm text-stone-500 mb-8 leading-relaxed">
-                    Exhaustive sheet containing all registered businesses, their status, plans, performance metrics (views, clicks), and owner contact information.
-                  </p>
+              {/* Action Distribution */}
+              <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-stone-100">
+                <h3 className="text-xl font-black text-stone-900 uppercase italic mb-8 flex items-center gap-3">
+                  <Activity className="text-emerald-500" />
+                  Action Distribution
+                </h3>
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Auth', value: allLogs.filter(l => l.category === 'AUTH').length },
+                          { name: 'Views', value: allLogs.filter(l => l.category === 'VIEW').length },
+                          { name: 'Reviews', value: allLogs.filter(l => l.category === 'REVIEW').length },
+                          { name: 'Sessions', value: allLogs.filter(l => l.category === 'SESSION').length },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        <Cell fill="#3b82f6" />
+                        <Cell fill="#059669" />
+                        <Cell fill="#f59e0b" />
+                        <Cell fill="#8b5cf6" />
+                      </Pie>
+                      <RechartsTooltip />
+                      <Legend verticalAlign="bottom" height={36}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Log Stat Cards */}
+              <div className="bg-white p-8 rounded-3xl border border-stone-100 shadow-sm">
+                <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-2">Login Frequency</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-stone-900">{allLogs.filter(l => l.action === 'LOGIN').length}</span>
+                  <span className="text-xs text-stone-400 font-bold">Logins</span>
+                </div>
+              </div>
+              <div className="bg-white p-8 rounded-3xl border border-stone-100 shadow-sm">
+                <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-2">Avg Session</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-stone-900">
+                    {Math.round(allLogs.filter(l => l.sessionDuration).reduce((acc, curr) => acc + curr.sessionDuration, 0) / (allLogs.filter(l => l.sessionDuration).length || 1))}
+                  </span>
+                  <span className="text-xs text-stone-400 font-bold">Seconds</span>
+                </div>
+              </div>
+              <div className="bg-white p-8 rounded-3xl border border-stone-100 shadow-sm">
+                <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-2">Active Critics</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-stone-900">{allLogs.filter(l => l.category === 'REVIEW').length}</span>
+                  <span className="text-xs text-stone-400 font-bold">Events</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-emerald-900 text-white p-12 rounded-[4rem] shadow-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                <FileText size={160} />
+              </div>
+              <div className="relative z-10 max-w-2xl">
+                <h3 className="text-4xl font-black italic uppercase mb-4 tracking-tight">Audit Report Generator</h3>
+                <p className="text-emerald-300 font-medium mb-8 text-lg">Export complete activity logs for legal, security, or business intelligence analysis in clean CSV format.</p>
+                
+                <div className="flex flex-wrap gap-4">
+                  <button 
+                    onClick={() => {
+                      const headers = ["Timestamp", "User", "Category", "Action", "Duration", "Details"];
+                      let csv = headers.join(",") + "\n";
+                      allLogs.forEach(l => {
+                        const row = [
+                          l.timestamp?.seconds ? new Date(l.timestamp.seconds * 1000).toISOString() : "Recent",
+                          l.userEmail,
+                          l.category,
+                          l.action,
+                          l.sessionDuration || 0,
+                          `"${JSON.stringify(l.details || {}).replace(/"/g, '""')}"`
+                        ];
+                        csv += row.join(",") + "\n";
+                      });
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `ndangira_activity_logs_${new Date().toISOString().split('T')[0]}.csv`;
+                      a.click();
+                    }}
+                    className="flex items-center gap-3 bg-white text-emerald-900 px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-50 transition-all shadow-xl active:scale-95"
+                  >
+                    <Download size={18} />
+                    Download Full Audit Trail
+                  </button>
                   <button 
                     onClick={() => downloadReport('businesses')}
-                    className="w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center justify-center gap-3"
+                    className="bg-emerald-800/50 border border-emerald-700 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-800 transition-all active:scale-95"
                   >
-                    <FileText size={18} />
-                    Download Business CSV
+                    CSV Business Registry
                   </button>
                 </div>
-
-                <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 group hover:border-blue-200 transition-all">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
-                      <Users size={24} />
-                    </div>
-                    <h3 className="text-xl font-black text-stone-900 group-hover:text-blue-600 transition-colors">User Demographics</h3>
-                  </div>
-                  <p className="text-sm text-stone-500 mb-8 leading-relaxed">
-                    Comprehensive list of all registered accounts, distinguishing between administrative staff, business owners, and general platform users.
-                  </p>
-                  <button 
-                    onClick={() => downloadReport('users')}
-                    className="w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center justify-center gap-3"
-                  >
-                    <FileText size={18} />
-                    Download User CSV
-                  </button>
-                </div>
-
-                <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 group hover:border-purple-200 transition-all">
-                  <div className="flex items-center gap-4 mb-6 text-purple-600">
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                      <Megaphone size={24} />
-                    </div>
-                    <h3 className="text-xl font-black text-stone-900 group-hover:text-purple-600 transition-colors">Campaign Performance</h3>
-                  </div>
-                  <p className="text-sm text-stone-500 mb-8 leading-relaxed">
-                    Detailed analytics of PalaceAds campaigns including impressions (views), click-through rates, and placement distribution.
-                  </p>
-                  <button 
-                    onClick={() => downloadReport('campaigns')}
-                    className="w-full bg-stone-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center justify-center gap-3"
-                  >
-                    <FileText size={18} />
-                    Download Campaign CSV
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mt-12 p-8 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 flex flex-col md:flex-row items-center gap-6">
-                 <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shrink-0">
-                   <Clock size={24} />
-                 </div>
-                 <div className="flex-grow text-center md:text-left">
-                   <p className="text-xs font-black text-emerald-900 uppercase tracking-widest mb-1">Real-time Data Sync</p>
-                   <p className="text-[10px] text-emerald-700 font-medium">Reports generated reflect the current state of the database. All sensitive data is cleaned before export.</p>
-                 </div>
-                 <div className="text-[10px] font-black text-emerald-400 uppercase italic">
-                   Last Sync: {new Date().toLocaleTimeString()}
-                 </div>
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, handleFirestoreError, OperationType } from '../firebase';
 import { Mail, Lock, LogIn, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { logActivity, LogCategory } from '../services/logService';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,7 +17,17 @@ export default function Login() {
     setLoading(true);
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Log login activity
+      await logActivity({
+        category: LogCategory.AUTH,
+        action: 'LOGIN',
+        userId: userCredential.user.uid,
+        userEmail: userCredential.user.email,
+        details: { provider: 'email' }
+      });
+
       navigate('/dashboard');
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, 'auth/login');

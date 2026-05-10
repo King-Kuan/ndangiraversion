@@ -17,6 +17,7 @@ import About from './pages/About';
 import { PalacePopup, RedirectInterstitial } from './components/AdComponents';
 import PWAPrompt from './components/PWAPrompt';
 import ChatOverlay from './components/ChatOverlay';
+import { logActivity, LogCategory, logSessionEnd, resetSessionTimer } from './services/logService';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -26,10 +27,37 @@ function ScrollToTop() {
   return null;
 }
 
+function ActivityTracker() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // Log routine page view
+    logActivity({
+      category: LogCategory.VIEW,
+      action: 'PAGE_VIEW',
+      details: { path: pathname, title: document.title }
+    });
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleUnload = () => logSessionEnd();
+    window.addEventListener('beforeunload', handleUnload);
+    
+    return () => {
+      logSessionEnd();
+      resetSessionTimer();
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <ActivityTracker />
       <PalacePopup />
       <RedirectInterstitial />
       <PWAPrompt />

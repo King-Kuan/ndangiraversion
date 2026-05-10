@@ -10,6 +10,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { useBookmarks } from '../hooks/useBookmarks';
+import { logActivity, LogCategory } from '../services/logService';
 
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
@@ -64,6 +65,17 @@ export default function BusinessDetail() {
         
         // Increment views on first load
         if (isFirstLoad) {
+          // Log business view
+          logActivity({
+            category: LogCategory.VIEW,
+            action: 'VIEW_BUSINESS',
+            details: { 
+              businessId: id, 
+              businessName: businessData.name,
+              category: businessData.category
+            }
+          });
+
           const updates: any = { views: increment(1) };
           
           // Only increment verification views if plan is free
@@ -83,7 +95,6 @@ export default function BusinessDetail() {
         const reviewsSnapshot = await getDocs(query(collection(db, 'reviews'), where('businessId', '==', id)));
         setReviews(reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
 
-        // Fetch related businesses and ads using localized businessData
         const relatedQ = query(
           collection(db, 'businesses'),
           where('status', '==', 'active'),
@@ -108,9 +119,7 @@ export default function BusinessDetail() {
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `businesses/${id}`);
     } finally {
-      if (isFirstLoad) setLoading(true); 
-      // Note: we set loading false at end of useEffect if we desire, but here we can manage it
-      setLoading(false);
+      if (isFirstLoad) setLoading(false);
     }
   };
 
@@ -134,8 +143,19 @@ export default function BusinessDetail() {
       };
       
       await addDoc(collection(db, 'reviews'), reviewData);
+
+      // Log review action
+      logActivity({
+        category: LogCategory.REVIEW,
+        action: 'POST_REVIEW',
+        details: {
+          businessId: id,
+          businessName: business.name,
+          rating: newReview.rating,
+          contentPreview: newReview.content.slice(0, 50)
+        }
+      });
       
-      // Update business rating/count
       const docRef = doc(db, 'businesses', id);
       const newCount = (business.reviewCount || 0) + 1;
       const newRating = ((business.rating || 0) * (business.reviewCount || 0) + newReview.rating) / newCount;
@@ -161,6 +181,11 @@ export default function BusinessDetail() {
       await updateDoc(docRef, {
         mapClicks: increment(1)
       });
+      logActivity({
+        category: LogCategory.VIEW,
+        action: 'GET_DIRECTIONS',
+        details: { businessId: id, businessName: business?.name }
+      });
     } catch (error) {
       console.error('Failed to increment map clicks', error);
     }
@@ -175,6 +200,12 @@ export default function BusinessDetail() {
       url: window.location.href,
     };
 
+    logActivity({
+      category: LogCategory.VIEW,
+      action: 'SHARE_BUSINESS',
+      details: { businessId: id, businessName: business.name }
+    });
+
     if (navigator.share) {
       try {
         await navigator.share(shareData);
@@ -182,7 +213,6 @@ export default function BusinessDetail() {
         console.error('Error sharing:', err);
       }
     } else {
-      // Fallback: Copy to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);
         setShowShareToast(true);
@@ -200,7 +230,6 @@ export default function BusinessDetail() {
     }
     if (!business) return;
     
-    // Check if chat exists
     try {
       const q = query(
         collection(db, 'chats'),
@@ -211,7 +240,6 @@ export default function BusinessDetail() {
       
       let chatId;
       if (snap.empty) {
-        // Create new chat
         const newChat = {
           participants: [user.uid, business.ownerUid],
           businessId: id,
@@ -224,7 +252,12 @@ export default function BusinessDetail() {
         chatId = snap.docs[0].id;
       }
       
-      // Dispatch event to open chat overlay
+      logActivity({
+        category: LogCategory.VIEW,
+        action: 'START_CHAT',
+        details: { businessId: id, businessName: business.name, chatId }
+      });
+
       window.dispatchEvent(new CustomEvent('open-chat', { detail: { chatId, businessName: business.name } }));
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, 'chats');
@@ -258,20 +291,15 @@ export default function BusinessDetail() {
     <Helmet>
       <title>{business.name} - {business.category} in {business.city} | Ndangira</title>
       <meta name="description" content={`${business.name} is a ${business.category} located in ${business.address}, ${business.city}. ${business.description.slice(0, 150)}...`} />
-      
-      {/* Dynamic Open Graph */}
       <meta property="og:title" content={`${business.name} | Ndangira Rwanda`} />
       <meta property="og:description" content={`Discover ${business.name}, leading ${business.category} in ${business.city}. Verified trust on Ndangira.`} />
       <meta property="og:image" content={business.photos?.[0] || "/og-image.png"} />
       <meta property="og:url" content={window.location.href} />
       <meta property="og:type" content="business.business" />
-
-      {/* JSON-LD Structured Data */}
       {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
     </Helmet>
 
     <div className="flex flex-col pb-20">
-      {/* Background Header */}
       <div className="h-64 md:h-96 relative bg-stone-900">
         {visiblePhotos[0] ? (
           <img 
@@ -290,7 +318,6 @@ export default function BusinessDetail() {
 
       <div className="max-w-7xl mx-auto w-full px-4 -mt-32 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Main Info */}
           <div className="flex-grow space-y-8">
             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-stone-100">
               <Link to="/" className="inline-flex items-center gap-2 text-stone-400 font-bold text-xs uppercase tracking-widest mb-8 hover:text-emerald-600 transition-colors">
@@ -302,12 +329,10 @@ export default function BusinessDetail() {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-3xl md:text-5xl font-black text-stone-900 tracking-tight">{business.name}</h1>
-                    {business.verified ? (
+                    {business.verified && (
                       <div className="bg-emerald-600 text-white p-2 rounded-2xl shadow-[0_0_20px_rgba(5,150,105,0.4)]">
                         <CheckCircle size={24} />
                       </div>
-                    ) : business.plan !== 'free' && (
-                      <CheckCircle size={24} className="text-stone-400" />
                     )}
                   </div>
                   <div className="flex items-center gap-4">
@@ -316,84 +341,38 @@ export default function BusinessDetail() {
                       <span>{business.rating || 'New'}</span>
                     </div>
                     <span className="text-stone-400 text-sm font-medium">{reviews.length} Customer Reviews</span>
-                    {business.verified && (
-                      <span className="text-emerald-600 text-[10px] font-black uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100 flex items-center gap-1">
-                        <TrendingUp size={10} /> Trusted Pillar
-                      </span>
-                    )}
                     <span className="text-emerald-600 text-sm font-bold uppercase tracking-wider">{business.category}</span>
                   </div>
                 </div>
 
-                <a 
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${business.lat},${business.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleGetDirections}
-                  className="flex items-center gap-3 bg-stone-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-stone-800 transition-all shadow-xl active:scale-95 text-sm md:text-base self-start"
-                >
-                  <Navigation size={20} className="rotate-45" />
-                  <span>Get Directions</span>
-                </a>
-
-                {business.ownerUid !== user?.uid && (
-                  <button 
-                    onClick={handleStartChat}
-                    className="flex items-center gap-3 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl active:scale-95 text-sm md:text-base self-start"
-                  >
-                    <MessageSquare size={20} />
-                    <span>Message</span>
-                  </button>
-                )}
-
-                {business.bookingUrl && (
+                <div className="flex flex-wrap gap-3">
                   <a 
-                    href={business.bookingUrl}
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${business.lat},${business.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 bg-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-xl active:scale-95 text-sm md:text-base self-start"
+                    onClick={handleGetDirections}
+                    className="flex items-center gap-3 bg-stone-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-stone-800 transition-all shadow-xl active:scale-95 text-sm"
                   >
-                    <CheckCircle size={20} />
-                    <span>Book Now</span>
+                    <Navigation size={20} className="rotate-45" />
+                    <span>Get Directions</span>
                   </a>
-                )}
 
-                <button 
-                  onClick={() => toggleBookmark(business.id)}
-                  className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-95 text-sm md:text-base border ${
-                    bookmarkedIds.includes(business.id)
-                      ? 'bg-rose-500 text-white border-rose-400'
-                      : 'bg-white text-stone-900 border-stone-200 hover:bg-stone-50'
-                  }`}
-                >
-                  <Heart size={20} fill={bookmarkedIds.includes(business.id) ? "currentColor" : "none"} />
-                  <span>{bookmarkedIds.includes(business.id) ? 'Saved' : 'Save'}</span>
-                </button>
+                  {business.ownerUid !== user?.uid && (
+                    <button 
+                      onClick={handleStartChat}
+                      className="flex items-center gap-3 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl active:scale-95 text-sm"
+                    >
+                      <MessageSquare size={20} />
+                      <span>Message</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="prose prose-stone max-w-none">
                 <p className="text-stone-600 text-lg leading-relaxed whitespace-pre-wrap">{business.description}</p>
               </div>
 
-              {!business.verified && (
-                <div className="mt-12 bg-stone-50 border border-stone-200 rounded-[2rem] p-6 flex flex-col md:flex-row items-center gap-6">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-stone-400 border border-stone-100 shadow-sm shrink-0">
-                    <Star size={24} />
-                  </div>
-                  <div className="flex-grow">
-                    <h4 className="text-sm font-black text-stone-900 uppercase tracking-widest mb-1">Help them reach the Trust Badge</h4>
-                    <p className="text-xs text-stone-500 font-medium">This business needs <span className="text-stone-900 font-black">350 reviews</span> to unlock the Verified Trust status. Your feedback matters!</p>
-                  </div>
-                  <button 
-                    onClick={() => document.getElementById('review-form')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="whitespace-nowrap text-xs font-black uppercase tracking-widest text-emerald-600 hover:underline"
-                  >
-                    Leave Review ➔
-                  </button>
-                </div>
-              )}
-
-              {/* Photos Gallery */}
               {visiblePhotos.length > 1 && (
                 <div className="mt-12 space-y-4">
                   <h3 className="font-bold text-lg tracking-tight">Gallery</h3>
@@ -411,23 +390,12 @@ export default function BusinessDetail() {
                   </div>
                 </div>
               )}
-              {business.plan === 'free' && business.photos.length > 1 && (
-                <div className="mt-8 p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
-                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-widest mb-2">Upgrade to see all photos</p>
-                  <p className="text-xs text-emerald-600">Standard and Featured plans allow displaying up to 10 photos of your location and services.</p>
-                </div>
-              )}
             </div>
 
-            {/* Map & Location */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
               <h3 className="font-bold text-xl mb-6">Location</h3>
               <div className="h-80 rounded-3xl overflow-hidden mb-6 border border-stone-100">
-                <MapComponent 
-                  center={[business.lat, business.lng]} 
-                  zoom={15} 
-                  businesses={[business]} 
-                />
+                <MapComponent center={[business.lat, business.lng]} zoom={15} businesses={[business]} />
               </div>
               <div className="flex items-center gap-3 text-stone-500">
                 <MapPin size={20} className="text-emerald-600 shrink-0" />
@@ -435,14 +403,11 @@ export default function BusinessDetail() {
               </div>
             </div>
 
-            {/* Reviews Section */}
             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-stone-100">
-              <div className="flex items-center justify-between mb-10">
-                <h3 className="font-bold text-2xl tracking-tight flex items-center gap-3">
-                  <MessageSquare className="text-emerald-600" />
-                  Customer Reviews
-                </h3>
-              </div>
+              <h3 className="font-bold text-2xl tracking-tight flex items-center gap-3 mb-10">
+                <MessageSquare className="text-emerald-600" />
+                Customer Reviews
+              </h3>
 
               {user ? (
                 <form id="review-form" onSubmit={handleSubmitReview} className="mb-12 bg-stone-50 p-6 md:p-8 rounded-3xl border border-stone-100">
@@ -452,14 +417,14 @@ export default function BusinessDetail() {
                       <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Rating</label>
                       <div className="flex gap-2">
                         {[1,2,3,4,5].map(star => (
-                          <button 
-                            key={star}
-                            type="button"
-                            onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
-                            className={`p-2 rounded-xl transition-all ${newReview.rating >= star ? 'text-yellow-500 bg-yellow-50' : 'text-stone-300 hover:text-stone-400'}`}
-                          >
-                            <Star size={24} fill={newReview.rating >= star ? "currentColor" : "none"} />
-                          </button>
+                           <button 
+                             key={star}
+                             type="button"
+                             onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                             className={`p-2 rounded-xl transition-all ${newReview.rating >= star ? 'text-yellow-500 bg-yellow-50' : 'text-stone-300 hover:text-stone-400'}`}
+                           >
+                             <Star size={24} fill={newReview.rating >= star ? "currentColor" : "none"} />
+                           </button>
                         ))}
                       </div>
                     </div>
@@ -467,234 +432,76 @@ export default function BusinessDetail() {
                       <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-3">Your Comment</label>
                       <textarea 
                         className="w-full bg-white border-stone-100 rounded-2xl p-4 text-sm focus:ring-emerald-500 focus:border-emerald-500 min-h-[120px]"
-                        placeholder="Share your experience with this business..."
+                        placeholder="Share your experience..."
                         required
                         value={newReview.content}
                         onChange={(e) => setNewReview(prev => ({ ...prev, content: e.target.value }))}
                       />
                     </div>
-                    <button 
-                      type="submit"
-                      disabled={submittingReview}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {submittingReview ? 'Posting...' : 'Post Review'}
-                      <Send size={16} />
+                    <button type="submit" disabled={submittingReview} className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg disabled:opacity-50 flex items-center gap-2">
+                      {submittingReview ? 'Posting...' : 'Post Review'} <Send size={16} />
                     </button>
                   </div>
                 </form>
               ) : (
                 <div className="mb-12 p-8 bg-stone-50 border border-dashed border-stone-200 rounded-3xl text-center">
-                  <p className="text-stone-500 text-sm mb-4">Please log in to share your experience.</p>
+                  <p className="text-stone-500 text-sm mb-4">Log in to review.</p>
                   <Link to="/login" className="inline-block bg-stone-900 text-white px-6 py-2 rounded-xl font-bold text-sm">Log In</Link>
                 </div>
               )}
 
               <div className="space-y-8">
-                {reviews.length > 0 ? (
-                  reviews.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).map((review) => (
-                    <div key={review.id} className="border-b border-stone-100 pb-8 last:border-none">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-black text-sm uppercase">
-                            {review.userName.charAt(0)}
-                          </div>
-                          <div>
-                            <span className="font-bold text-stone-900 block">{review.userName}</span>
-                            <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">
-                              {review.createdAt?.toDate ? new Date(review.createdAt.toDate()).toLocaleDateString() : 'Just now'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-yellow-500">
-                          <Star size={14} fill="currentColor" />
-                          <span className="text-xs font-bold">{review.rating}</span>
+                {reviews.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).map((review) => (
+                  <div key={review.id} className="border-b border-stone-100 pb-8 last:border-none">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-black text-sm uppercase">{review.userName.charAt(0)}</div>
+                        <div>
+                          <span className="font-bold text-stone-900 block">{review.userName}</span>
+                          <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">
+                            {review.createdAt?.toDate ? new Date(review.createdAt.toDate()).toLocaleDateString() : 'Just now'}
+                          </span>
                         </div>
                       </div>
-                      <p className="text-stone-600 text-sm leading-relaxed">{review.content}</p>
-                      {review.reply && (
-                        <div className="mt-4 ml-4 md:ml-8 p-4 bg-stone-50 rounded-2xl border-l-4 border-emerald-500">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Business Owner Response</span>
-                            <span className="text-[8px] text-stone-400 font-bold ml-auto">
-                              {review.repliedAt?.seconds ? new Date(review.repliedAt.seconds * 1000).toLocaleDateString() : ''}
-                            </span>
-                          </div>
-                          <p className="text-stone-800 text-sm font-medium">{review.reply}</p>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 text-yellow-500">
+                        <Star size={14} fill="currentColor" />
+                        <span className="text-xs font-bold">{review.rating}</span>
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-stone-400 italic text-sm">No reviews yet. Be the first to review!</p>
+                    <p className="text-stone-600 text-sm leading-relaxed">{review.content}</p>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Contact Panel */}
           <aside className="lg:w-96 shrink-0 h-fit lg:sticky lg:top-24">
             <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-stone-100 space-y-8">
-              <h4 className="font-bold text-xl tracking-tight">Contact Details</h4>
-              
+              <h4 className="font-bold text-xl tracking-tight">Contact</h4>
               <div className="space-y-6">
                 {business.phone && (
-                  <a href={`tel:${business.phone}`} className="flex items-center gap-4 group">
-                    <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
-                      <Phone size={20} />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">Phone</span>
-                      <span className="font-bold text-stone-900">{business.phone}</span>
-                    </div>
-                  </a>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm"><Phone size={20} /></div>
+                    <div><span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">Phone</span><span className="font-bold text-stone-900">{business.phone}</span></div>
+                  </div>
                 )}
-
                 {business.email && (
-                  <a href={`mailto:${business.email}`} className="flex items-center gap-4 group text-wrap break-all">
-                    <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
-                      <Mail size={20} />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">Email</span>
-                      <span className="font-bold text-stone-900">{business.email}</span>
-                    </div>
-                  </a>
-                )}
-
-                {business.website && (
-                  <a href={business.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
-                    <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
-                      <Globe size={20} />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">Website</span>
-                      <span className="font-bold text-stone-900 flex items-center gap-1">
-                        Visit Site <ExternalLink size={12} />
-                      </span>
-                    </div>
-                  </a>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm"><Mail size={20} /></div>
+                    <div><span className="text-[10px] font-black uppercase tracking-widest text-stone-400 block">Email</span><span className="font-bold text-stone-900 break-all">{business.email}</span></div>
+                  </div>
                 )}
               </div>
-
               <div className="pt-8 border-t border-stone-50">
-                <button 
-                  onClick={handleShare}
-                  className="w-full bg-emerald-100 text-emerald-700 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-200 transition-all flex items-center justify-center gap-2"
-                >
-                  <Share2 size={16} />
-                  Share this business
+                <button onClick={handleShare} className="w-full bg-emerald-100 text-emerald-700 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-200 transition-all flex items-center justify-center gap-2">
+                  <Share2 size={16} /> Share this business
                 </button>
               </div>
             </div>
-
-            {/* Share Toast */}
-            <AnimatePresence>
-              {showShareToast && (
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 50 }}
-                  className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2000] bg-stone-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
-                >
-                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                    <Check size={14} />
-                  </div>
-                  Link copied to clipboard!
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Premium Badge Promo */}
-            {business.plan === 'featured' && (
-              <div className="mt-8 bg-gradient-to-br from-yellow-400 to-orange-400 p-8 rounded-[2.5rem] text-stone-900 shadow-xl relative overflow-hidden group">
-                <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
-                  <Navigation size={120} className="rotate-45" />
-                </div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Star size={18} fill="currentColor" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Featured Business</span>
-                </div>
-                <h4 className="font-black text-2xl leading-tight mb-2">Verified & Recommended</h4>
-                <p className="text-xs font-medium opacity-80 leading-relaxed">This business has been manually verified by the Ndangira team for quality and authenticity.</p>
-              </div>
-            )}
           </aside>
         </div>
       </div>
     </div>
-
-    {/* Related & Ads Feed */}
-    <section className="bg-stone-50 py-24">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h2 className="text-3xl font-black text-stone-900 tracking-tight mb-2 uppercase">Suggested for You</h2>
-            <p className="text-stone-500 font-medium text-sm italic">Discover more verified partners and exclusive offers in Rwanda</p>
-          </div>
-          <div className="hidden md:flex items-center gap-2 text-purple-600">
-            <Megaphone size={18} />
-            <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Partner Feed Active</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {(() => {
-            const items: any[] = [];
-            const maxLength = Math.max(related.length, ads.length);
-            
-            // Intersperse: 2 businesses, then 1 ad
-            for (let i = 0; i < maxLength; i++) {
-              if (related[i]) items.push({ type: 'business', data: related[i] });
-              if (related[i + 1]) {
-                items.push({ type: 'business', data: related[i + 1] });
-                i++; // Skip next since we added it
-              }
-              const adIdx = Math.floor(items.length / 3);
-              if (ads[adIdx]) items.push({ type: 'ad', data: ads[adIdx] });
-              
-              if (items.length >= 6) break; // Keep it clean
-            }
-
-            if (items.length === 0) return <div className="col-span-full text-stone-300 italic text-center py-12">No other suggestions yet.</div>;
-
-            return items.map((item, idx) => item.type === 'business' ? (
-              <Link 
-                to={`/business/${item.data.id}`} 
-                key={`${item.data.id}-${idx}`}
-                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-stone-100 transition-all group flex flex-col"
-              >
-                <div className="relative h-48 bg-stone-200">
-                  {item.data.photos?.[0] ? (
-                    <img 
-                      src={item.data.photos[0]} 
-                      alt={item.data.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-stone-400">
-                      <ImageIcon size={32} />
-                    </div>
-                  )}
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-sm">
-                    {item.data.category}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-700 transition-colors line-clamp-1">{item.data.name}</h3>
-                  <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed">{item.data.description}</p>
-                </div>
-              </Link>
-            ) : (
-              <AdCard key={`${item.data.id}-${idx}`} ad={item.data} />
-            ));
-          })()}
-        </div>
-      </div>
-    </section>
     </>
   );
 }
