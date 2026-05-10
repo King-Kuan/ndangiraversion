@@ -21,6 +21,7 @@ export default function Home() {
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'featured' | 'rating' | 'popular' | 'newest'>('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const { bookmarkedIds, toggleBookmark } = useBookmarks();
   const [mapCenter, setMapCenter] = useState<[number, number]>([-1.9, 30.1]);
   const [mapZoom, setMapZoom] = useState(13);
@@ -119,15 +120,30 @@ export default function Home() {
   }, [selectedCity, selectedCategory, selectedPrice, sortBy]);
 
   const filteredBusinesses = businesses.filter(b => {
-    const s = searchQuery.toLowerCase();
-    return (
-      b.name.toLowerCase().includes(s) ||
-      b.description.toLowerCase().includes(s) ||
-      b.category.toLowerCase().includes(s) ||
-      b.city.toLowerCase().includes(s) ||
-      // Simple 2-char matching for short/misspelled words if query is long enough
-      (s.length > 3 && b.name.toLowerCase().substring(0, 4).includes(s.substring(0, 3)))
-    );
+    const s = searchQuery.toLowerCase().trim();
+    if (!s) return true;
+    
+    const name = b.name.toLowerCase();
+    const desc = b.description.toLowerCase();
+    const cat = b.category.toLowerCase();
+    const city = b.city.toLowerCase();
+
+    // Exact matches or inclusions
+    if (name.includes(s) || desc.includes(s) || cat.includes(s) || city.includes(s)) return true;
+
+    // Fuzzy matching for typos/shortened words (if query is at least 3 chars)
+    if (s.length >= 3) {
+      const parts = s.split(/\s+/);
+      return parts.every(part => 
+        name.includes(part) || 
+        cat.includes(part) || 
+        city.includes(part) ||
+        // Check if first 3-4 chars match
+        (part.length >= 3 && name.startsWith(part.substring(0, 3)))
+      );
+    }
+
+    return false;
   });
 
     const interspersedItems: any[] = [];
@@ -178,29 +194,145 @@ export default function Home() {
           </motion.h1>
           
           <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto bg-white/10 backdrop-blur-md p-2 rounded-2xl md:rounded-full border border-white/20 shadow-2xl">
-            <div className="flex-grow flex items-center px-6 gap-3">
-              <Search className="text-emerald-300" size={20} />
+            <div className="flex-grow flex items-center px-6 gap-3 py-2 md:py-0">
+              <Search className="text-emerald-300 shrink-0" size={20} />
               <input 
                 type="text" 
-                placeholder="Search for restaurants, shops, services..." 
-                className="bg-transparent border-none focus:ring-0 text-white placeholder:text-emerald-200/50 w-full"
+                placeholder="What are you looking for?" 
+                className="bg-transparent border-none focus:ring-0 text-white placeholder:text-emerald-200/50 w-full text-lg"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl md:rounded-full font-bold shadow-lg transition-all active:scale-95">
-              SEARCH
+            <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-4 rounded-xl md:rounded-full font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 text-xs">
+              Search Now
             </button>
+          </div>
+
+          {/* Quick Filter Labels */}
+          <div className="mt-8 flex flex-wrap justify-center gap-2 max-w-3xl mx-auto">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300/60 w-full mb-2">Try:</span>
+            {CATEGORIES.slice(0, 5).map(cat => (
+              <button 
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold text-white transition-all active:scale-95"
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
+      {/* Floating Mobile Filter Button */}
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[60]">
+        <button 
+          onClick={() => setShowMobileFilters(true)}
+          className="bg-emerald-600 text-white flex items-center gap-3 px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_10px_30px_rgba(5,150,105,0.4)] border-2 border-emerald-400 active:scale-90 transition-all"
+        >
+          <Filter size={16} />
+          <span>Refine Search</span>
+          {(selectedCity || selectedCategory || selectedPrice) && (
+            <span className="w-5 h-5 bg-white text-emerald-600 rounded-full flex items-center justify-center text-[10px]">!</span>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Filters Drawer */}
+      <AnimatePresence>
+        {showMobileFilters && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobileFilters(false)}
+              className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[70] lg:hidden"
+            />
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[3rem] p-8 z-[80] lg:hidden max-h-[85vh] overflow-y-auto"
+            >
+              <div className="w-12 h-1.5 bg-stone-200 rounded-full mx-auto mb-8" />
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-2xl font-black text-stone-900 uppercase italic">Filter Results</h3>
+                <button 
+                  onClick={() => {
+                    setSelectedCity('');
+                    setSelectedCategory(null);
+                    setSelectedPrice(null);
+                  }}
+                  className="text-[10px] font-black text-emerald-600 uppercase tracking-widest"
+                >
+                  Clear All
+                </button>
+              </div>
+
+              <div className="space-y-8">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4 block">District</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CITIES.slice(0, 8).map(city => (
+                      <button 
+                        key={city.name}
+                        onClick={() => setSelectedCity(selectedCity === city.name ? '' : city.name)}
+                        className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${selectedCity === city.name ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-stone-50 text-stone-600 border-stone-100'}`}
+                      >
+                        {city.name}
+                      </button>
+                    ))}
+                    <select 
+                      className="col-span-full w-full bg-stone-50 border-stone-100 rounded-xl text-xs font-bold px-4 py-3"
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                    >
+                      <option value="">More Districts...</option>
+                      {CITIES.slice(8).map(city => (
+                        <option key={city.name} value={city.name}>{city.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4 block">Category</label>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map(cat => (
+                      <button 
+                        key={cat}
+                        onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedCategory === cat ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-stone-50 text-stone-600 border-stone-100'}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pb-12">
+                  <button 
+                    onClick={() => setShowMobileFilters(false)}
+                    className="w-full bg-stone-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                  >
+                    Show {filteredBusinesses.length} Results
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Filters & Results Container */}
       <section className="max-w-7xl mx-auto w-full px-4 -mt-16 pb-20 relative z-20">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Filters */}
-          <aside className="lg:w-72 flex flex-col gap-6">
-            <div className="bg-white p-6 rounded-3xl shadow-xl border border-stone-100">
+          {/* Sidebar Filters (Hidden on Mobile) */}
+          <aside className="hidden lg:flex lg:w-72 flex-col gap-6">
+            <div className="bg-white p-6 rounded-3xl shadow-xl border border-stone-100 sticky top-24">
               <div className="flex items-center gap-2 font-bold text-stone-900 mb-6">
                 <Filter size={18} className="text-emerald-600" />
                 <span>Filters</span>
@@ -208,9 +340,14 @@ export default function Home() {
               
               <div className="space-y-6">
                 <div>
-                  <label className="text-xs uppercase font-bold text-stone-400 tracking-widest block mb-3">Select District</label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-xs uppercase font-bold text-stone-400 tracking-widest">Select District</label>
+                    {selectedCity && (
+                      <button onClick={() => setSelectedCity('')} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Clear</button>
+                    )}
+                  </div>
                   <select 
-                    className="w-full bg-stone-50 border-stone-200 rounded-xl text-sm focus:ring-emerald-500 focus:border-emerald-500 px-4 py-3"
+                    className="w-full bg-stone-50 border-stone-200 rounded-xl text-sm font-bold focus:ring-emerald-500 focus:border-emerald-500 px-4 py-3"
                     value={selectedCity}
                     onChange={(e) => setSelectedCity(e.target.value)}
                   >
@@ -222,19 +359,18 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="text-xs uppercase font-bold text-stone-400 tracking-widest block mb-3">Categories</label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-xs uppercase font-bold text-stone-400 tracking-widest">Categories</label>
+                    {selectedCategory && (
+                      <button onClick={() => setSelectedCategory(null)} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Clear</button>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    <button 
-                      onClick={() => setSelectedCategory(null)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${!selectedCategory ? 'bg-emerald-600 text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
-                    >
-                      All
-                    </button>
                     {CATEGORIES.map(cat => (
                       <button 
                         key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                        onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${selectedCategory === cat ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-stone-100 text-stone-600 border-stone-100 hover:bg-stone-200'}`}
                       >
                         {cat}
                       </button>
