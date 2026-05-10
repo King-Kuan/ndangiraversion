@@ -7,6 +7,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { CITIES, CATEGORIES, PLANS } from '../constants';
 import GPSPicker from '../components/GPSPicker';
 import ImageUpload from '../components/ImageUpload';
+import { logActivity, LogCategory } from '../services/logService';
 import { Building2, Mail, Lock, User, Phone, Globe, Info, Map as MapIcon, ChevronRight, Check, X, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -111,6 +112,13 @@ export default function Register() {
       };
 
       await addDoc(collection(db, 'businesses'), businessData);
+
+      // Log business creation activity
+      logActivity({
+        category: LogCategory.BUSINESS_OPS,
+        action: 'CREATE_BUSINESS',
+        details: { businessName: formData.businessName, city: formData.businessCity, category: formData.businessCategory }
+      });
 
       // 4. Send Welcome Email via our API
       try {

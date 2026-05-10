@@ -131,12 +131,29 @@ service cloud.firestore {
              data.text is string && data.text.size() > 0 && data.text.size() < 5000;
     }
 
+    function isValidLog(data) {
+      return data.keys().hasAll(['category', 'action', 'timestamp', 'userId', 'userEmail']) &&
+             data.category in ['AUTH', 'VIEW', 'REVIEW', 'BUSINESS_OPS', 'SYSTEM', 'SESSION'] &&
+             data.action is string && data.action.size() < 200 &&
+             data.userId is string && data.userEmail is string &&
+             data.timestamp == request.time &&
+             (!('sessionDuration' in data) || data.sessionDuration is number);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
 
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isValidLog(incoming()) && (
+        (isAuthenticated() && incoming().userId == request.auth.uid) ||
+        (!isAuthenticated() && incoming().userId == 'anonymous')
+      );
     }
 
     match /users/{userId} {

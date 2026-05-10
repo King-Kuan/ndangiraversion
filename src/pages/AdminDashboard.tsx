@@ -399,6 +399,13 @@ export default function AdminDashboard() {
             date: todayDate,
             sentAt: serverTimestamp()
           });
+
+          // Also log to activity trail
+          logActivity({
+            category: LogCategory.SYSTEM,
+            action: 'EMAIL_SENT',
+            details: { email, templateId: selectedTemplate }
+          });
         }
       }
       setEmailStatus({ success: successCount, total: recipients.length });
@@ -465,6 +472,13 @@ export default function AdminDashboard() {
       const docRef = doc(db, collectionName, id);
       await updateDoc(docRef, { status });
       
+      // Log admin action
+      logActivity({
+        category: LogCategory.BUSINESS_OPS,
+        action: `ADMIN_${status.toUpperCase()}_${collectionName.toUpperCase()}`,
+        details: { id, collection: collectionName }
+      });
+      
       if (collectionName === 'businesses') {
         const business = allBusinesses.find(b => b.id === id);
         if (status === 'active' && business && !business.approvalEmailSent) {
@@ -505,6 +519,14 @@ export default function AdminDashboard() {
         pendingPlanUpdate: null,
         expiryDate: thirtyDaysFromNow
       });
+
+      // Log upgrade approval
+      logActivity({
+        category: LogCategory.BUSINESS_OPS,
+        action: 'ADMIN_APPROVE_UPGRADE',
+        details: { businessId, plan }
+      });
+
       setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, plan: plan as any, pendingPlanUpdate: undefined } : b));
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `businesses/${businessId}/upgrade`);
@@ -513,8 +535,15 @@ export default function AdminDashboard() {
 
   const handleToggleVerification = async (businessId: string, currentStatus: boolean) => {
     try {
-      const docRef = doc(db, 'businesses', businessId);
-      await updateDoc(docRef, { verified: !currentStatus });
+      await updateDoc(doc(db, 'businesses', businessId), { verified: !currentStatus });
+      
+      // Log verification toggle
+      logActivity({
+        category: LogCategory.BUSINESS_OPS,
+        action: currentStatus ? 'ADMIN_REVOKE_VERIFICATION' : 'ADMIN_VERIFY_BUSINESS',
+        details: { businessId }
+      });
+
       setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, verified: !currentStatus } : b));
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `businesses/${businessId}/verify`);

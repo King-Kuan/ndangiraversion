@@ -4,9 +4,10 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { BusinessListing } from '../types';
-import { CITIES, CATEGORIES } from '../constants';
+import { CATEGORIES, CITIES } from '../constants';
 import GPSPicker from '../components/GPSPicker';
 import ImageUpload from '../components/ImageUpload';
+import { logActivity, LogCategory } from '../services/logService';
 import { 
   Building2, 
   MapPin, 
@@ -98,6 +99,14 @@ export default function BusinessSettings() {
         status: newStatus,
         updatedAt: serverTimestamp()
       });
+
+      // Log business update activity
+      logActivity({
+        category: LogCategory.BUSINESS_OPS,
+        action: 'UPDATE_BUSINESS',
+        details: { businessId: id, name: formData.name, status: newStatus }
+      });
+
       setBusiness(prev => prev ? { ...prev, ...formData, status: newStatus } : null);
       alert('Changes saved successfully!');
       navigate('/dashboard');

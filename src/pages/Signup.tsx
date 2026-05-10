@@ -5,6 +5,7 @@ import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { Mail, Lock, User, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { logActivity, LogCategory } from '../services/logService';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -39,6 +40,15 @@ export default function Signup() {
         email: formData.email,
         role: 'user',
         createdAt: serverTimestamp()
+      });
+
+      // Log registration activity
+      await logActivity({
+        category: LogCategory.AUTH,
+        action: 'REGISTER',
+        userId: user.uid,
+        userEmail: user.email,
+        details: { name: formData.name }
       });
 
       navigate('/dashboard');
